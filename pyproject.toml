@@ -26,6 +26,7 @@ members = [
   "src/gmail_client_impl",
   "src/message",
   "src/gmail_message_impl",
+  "src/mail_client_service",
 ]
 
 [tool.ruff]
@@ -72,7 +73,13 @@ ignore = [
 [tool.mypy]
 strict = true
 explicit_package_bases = true # Required for src layout
-mypy_path = ["src/mail_client_api/src", "src/mail_client_gmail_impl/src", "src/gmail_message_impl/src", "src/message/src"]
+mypy_path = [
+    "src/mail_client_api/src",
+    "src/mail_client_gmail_impl/src",
+    "src/gmail_message_impl/src",
+    "src/message/src",
+    "src/mail_client_service/src",
+]
 ignore_missing_imports = false
 warn_unused_ignores = false
 
@@ -84,6 +91,7 @@ module = [
     "gmail_client_impl.*",
     "message.*",
     "mail_client_api.*",
+    "mail_client_service.*",
     "gmail_message_impl.*"
 ]
 ignore_missing_imports = true
