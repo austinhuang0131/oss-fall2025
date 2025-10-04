@@ -1,0 +1,39 @@
+[project]
+name = "mail-client-service-impl"
+version = "0.1.0"
+description = "Service implementation of the mail client API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mail-client-api",
+    "mail-client-service-client",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend = "../../pyproject.toml"
+
+[tool.ruff.lint]
+ignore = [
+    "W293",
+    "T201",
+    "FBT001",
+    "FBT002",
+    "C901",
+    "PLR0912",
+    "PLR0915",
+    "S105",
+    "BLE001",
+    "D203",
+    "D213",
+    "S101",
+]
+
+[tool.uv.sources]
+mail-client-api = { workspace = true }
+mail-client-service-client = { path = "../mail-client-service/mail-client-service-client" }

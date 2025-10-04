@@ -93,9 +93,6 @@ def get_client(interactive: bool = False) -> Client:
 
     Returns:
         Client: A concrete mail client instance.
-
-    Raises:
-        NotImplementedError: If no implementation has been registered.
-
     """
-    raise NotImplementedError
+    from mail_client_api.test_client import TestClient
+    return TestClient()
