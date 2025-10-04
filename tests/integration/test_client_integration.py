@@ -26,7 +26,7 @@ def test_get_client_and_authenticate() -> None:
     """
     try:
         # 1. Get the client using the abstract factory
-        client = mail_client_api.get_client(interactive=False)
+        client = mail_client_api.get_client(interactive=True)
 
         # 2. Assert that we received the correct implementation
         assert isinstance(client, gmail_client_impl.GmailClient)
