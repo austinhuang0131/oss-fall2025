@@ -120,7 +120,9 @@ def test_client_scope_permissions() -> None:
         pytest.skip("Skipping integration test: credentials.json not found.")
     except (RuntimeError, ValueError, ConnectionError) as e:
         # If we get a 403 error, it's likely a scope issue
-        if "403" in str(e) or "insufficient" in str(e).lower():
+        if "No valid credentials found" in str(e):
+            pytest.skip("Skipping integration test: no valid credentials found.")
+        elif "403" in str(e) or "insufficient" in str(e).lower():
             pytest.fail(f"OAuth scope issue - client may not have required permissions: {e}")
         else:
             pytest.fail(f"Integration test failed: {e}")

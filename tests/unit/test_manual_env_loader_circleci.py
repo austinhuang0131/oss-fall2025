@@ -1,18 +1,25 @@
-import os
-from pathlib import Path
-from types import ModuleType
-from typing import Any
+"""Unit tests for manual environment loader fallback in CircleCI context.
+
+This module verifies that environment variables are loaded from a .env file
+when the dotenv import fails, and checks the GmailClient exposure.
+"""
 
 import importlib
+import os
 import sys
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
+if TYPE_CHECKING:
+    from types import ModuleType
 
 pytestmark = pytest.mark.circleci
 
 
 def test_manual_env_loader_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the manual environment loader fallback loads from a .env file when the dotenv import fails."""
     # Create a temporary package layout to import the module cleanly
     pkg_dir = tmp_path / "gmail_client_impl"
     src_dir = pkg_dir
@@ -22,8 +29,7 @@ def test_manual_env_loader_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     (src_dir / "__init__.py").write_text("\n")
 
     # Read original file content
-    from pathlib import Path as P
-    original = (P.cwd() / "src" / "gmail_client_impl" / "src" / "gmail_client_impl" / "gmail_impl.py").read_text()
+    original = (Path.cwd() / "src" / "gmail_client_impl" / "src" / "gmail_client_impl" / "gmail_impl.py").read_text()
     # Force the fallback path by making the dotenv import raise ImportError inside the copied file
     original = original.replace(
         "from dotenv import load_dotenv",

@@ -1,10 +1,14 @@
+"""Unit tests for GmailMessage parsing and handling.
+
+This module contains tests for subject parsing, date formatting, body extraction,
+handling of multipart messages, and error cases for the GmailMessage class.
+"""
+
 import base64
 from email.message import EmailMessage
 
 import pytest
-
 from gmail_client_impl.message_impl import GmailMessage
-
 
 pytestmark = pytest.mark.circleci
 
@@ -16,6 +20,7 @@ def _enc(s: bytes | str) -> str:
 
 
 def test_subject_rfc2047_and_plain() -> None:
+    """Test that GmailMessage correctly parses both plain and RFC2047-encoded subject headers."""
     msg1 = GmailMessage("a", _enc("Subject: Plain\r\n\r\nB"))
     assert msg1.subject == "Plain"
 
@@ -29,6 +34,7 @@ def test_subject_rfc2047_and_plain() -> None:
 
 
 def test_date_formatting_and_fallback() -> None:
+    """Test that date formatting works and falls back to raw value if parsing fails."""
     good = GmailMessage(
         "g",
         _enc("Date: Wed, 30 Jul 2025 10:30:00 +0000\r\n\r\nB"),
@@ -40,6 +46,7 @@ def test_date_formatting_and_fallback() -> None:
 
 
 def test_body_multipart_prefers_text_plain_non_attachment() -> None:
+    """Test that multipart messages prefer text/plain parts that are not attachments."""
     em = EmailMessage()
     em["From"] = "x@example.com"
     em.set_content("plain text body")
@@ -50,15 +57,18 @@ def test_body_multipart_prefers_text_plain_non_attachment() -> None:
 
 
 def test_body_no_text_plain_reports_placeholder() -> None:
+    """Test that messages without text/plain parts return a placeholder or decoded HTML content."""
     em = EmailMessage()
     em.add_alternative("<h1>only html</h1>", subtype="html")
     raw = _enc(em.as_bytes())
     msg = GmailMessage("m", raw)
     # Either NO_PLAIN_TEXT_BODY or decoded html, implementation returns html content in tests
-    assert isinstance(msg.body, str) and len(msg.body) > 0
+    assert isinstance(msg.body, str)
+    assert len(msg.body) > 0
 
 
 def test_non_bytes_payloads_and_decode_errors() -> None:
+    """Test handling of non-bytes payloads and graceful decode errors in multipart messages."""
     # Singlepart non-bytes payload
     raw = _enc("Subject: S\r\n\r\ntext")
     msg = GmailMessage("x", raw)
@@ -78,7 +88,7 @@ def test_non_bytes_payloads_and_decode_errors() -> None:
 
 
 def test_error_parsing_message_defaults() -> None:
-    # Binary garbage should trigger error-parsing defaults
+    """Binary garbage should trigger error-parsing defaults."""
     blob = bytes(range(256))
     msg = GmailMessage("bin", _enc(blob))
     assert msg.subject == GmailMessage.ERROR_PARSING_MESSAGE

@@ -1,12 +1,16 @@
+"""Unit tests for GmailClient implementation.
+
+This module contains tests for authentication, message operations, and error handling
+in the GmailClient class using CircleCI environment variables and mocks.
+"""
+
 import os
 from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from googleapiclient.errors import HttpError
-
 from gmail_client_impl.gmail_impl import GmailClient
-
+from googleapiclient.errors import HttpError
 
 pytestmark = pytest.mark.circleci
 
@@ -21,6 +25,7 @@ def _mock_chain_for(service: Mock) -> tuple[Mock, Mock]:
 
 @patch("gmail_client_impl.gmail_impl.build")
 def test_init_with_provided_service_skips_auth(mock_build: Any) -> None:
+    """Test that providing a service to GmailClient skips authentication and does not call build."""
     mock_service = Mock()
     client = GmailClient(service=mock_service)
     assert client.service is mock_service
@@ -39,6 +44,7 @@ def test_init_with_provided_service_skips_auth(mock_build: Any) -> None:
     },
 )
 def test_env_auth_success_saves_token(mock_request: Any, mock_creds_cls: Any, mock_build: Any) -> None:
+    """Test that environment-based authentication saves the token when credentials are valid."""
     mock_creds = Mock()
     mock_creds.valid = True
     mock_creds.refresh_token = "rtok"
@@ -46,7 +52,7 @@ def test_env_auth_success_saves_token(mock_request: Any, mock_creds_cls: Any, mo
     mock_build.return_value = Mock()
 
     with patch("gmail_client_impl.gmail_impl.Path") as mock_path, patch.object(
-        GmailClient, "_save_token"
+        GmailClient, "_save_token",
     ) as mock_save:
         mock_path.return_value.exists.return_value = False
         client = GmailClient()
@@ -56,8 +62,9 @@ def test_env_auth_success_saves_token(mock_request: Any, mock_creds_cls: Any, mo
 
 
 def test_interactive_flow_returns_invalid_creds_raises_failure_message() -> None:
+    """Test that an invalid credential returned from interactive flow raises a failure message."""
     with patch.object(GmailClient, "_run_interactive_flow") as mock_flow, patch(
-        "gmail_client_impl.gmail_impl.build"
+        "gmail_client_impl.gmail_impl.build",
     ) as mock_build:
         creds = Mock()
         creds.valid = False
@@ -73,6 +80,7 @@ def test_interactive_flow_returns_invalid_creds_raises_failure_message() -> None
 @patch("gmail_client_impl.gmail_impl.Path")
 @patch("gmail_client_impl.gmail_impl.Credentials")
 def test_token_file_not_found_then_error(mock_creds_cls: Any, mock_path: Any, mock_build: Any) -> None:
+    """Test that GmailClient raises an error when the token file is not found and no credentials are available."""
     with patch.dict(os.environ, {}, clear=True):
         mock_path.return_value.exists.return_value = False
         with pytest.raises(RuntimeError, match="No valid credentials found"):
@@ -80,6 +88,7 @@ def test_token_file_not_found_then_error(mock_creds_cls: Any, mock_path: Any, mo
 
 
 def test_run_interactive_flow_missing_credentials_file() -> None:
+    """Test that _run_interactive_flow raises FileNotFoundError when credentials file is missing."""
     client = GmailClient(service=Mock())
     with patch("gmail_client_impl.gmail_impl.Path") as mock_path:
         mock_path.return_value.exists.return_value = False
@@ -88,6 +97,7 @@ def test_run_interactive_flow_missing_credentials_file() -> None:
 
 
 def test_delete_message_success_and_failure_paths() -> None:
+    """Test the success and failure paths for deleting a Gmail message."""
     service = Mock()
     client = GmailClient(service=service)
     _, msgs = _mock_chain_for(service)
@@ -108,6 +118,7 @@ def test_delete_message_success_and_failure_paths() -> None:
 
 
 def test_mark_as_read_success_and_failure_paths() -> None:
+    """Test the success and failure paths for marking a Gmail message as read."""
     service = Mock()
     client = GmailClient(service=service)
     _, msgs = _mock_chain_for(service)
@@ -123,9 +134,10 @@ def test_mark_as_read_success_and_failure_paths() -> None:
 
 
 def test_get_message_and_get_messages_iter() -> None:
+    """Test getting a single message and iterating over multiple messages from GmailClient."""
     service = Mock()
     client = GmailClient(service=service)
-    users, msgs = _mock_chain_for(service)
+    _, msgs = _mock_chain_for(service)
 
     # get_message
     get_call = Mock()
