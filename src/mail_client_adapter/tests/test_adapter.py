@@ -1,17 +1,19 @@
 """Tests for the MailClientAdapter."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from mail_client_adapter.mail_client_adapter import MailClientAdapter
 
 
-@patch("requests.get")
-def test_get_messages_remote(mock_get: MagicMock | AsyncMock) -> None:
+@patch("httpx.Client.request")
+def test_get_messages_remote(mock_request: MagicMock) -> None:
     """Test fetching a message via the remote service."""
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = [
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
         {"id": "1", "from": "a", "to": "b", "date": "2023", "subject": "Test"},
     ]
+    mock_request.return_value = mock_response
     client = MailClientAdapter(base_url="http://localhost:8000")
     messages = list(client.get_messages(max_results=1))
     assert len(messages) == 1
@@ -21,28 +23,36 @@ def test_get_messages_remote(mock_get: MagicMock | AsyncMock) -> None:
     assert messages[0].date == "2023"
     assert messages[0].subject == "Test"
 
-@patch("requests.get")
-def test_get_message_remote(mock_get: MagicMock | AsyncMock) -> None:
+@patch("httpx.Client.request")
+def test_get_message_remote(mock_request: MagicMock) -> None:
     """Test fetching a single message via the remote service."""
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = {
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
         "id": "1", "from": "a", "to": "b", "date": "2023", "subject": "Test", "body": "Body",
     }
+    mock_request.return_value = mock_response
     client = MailClientAdapter(base_url="http://localhost:8000")
     msg = client.get_message("1")
     assert msg.id == "1"
     assert msg.body == "Body"
 
-@patch("requests.delete")
-def test_delete_message_remote(mock_delete: MagicMock | AsyncMock) -> None:
+@patch("httpx.Client.request")
+def test_delete_message_remote(mock_request: MagicMock) -> None:
     """Test deleting a message via the remote service."""
-    mock_delete.return_value.status_code = 200
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {}
+    mock_request.return_value = mock_response
     client = MailClientAdapter(base_url="http://localhost:8000")
     assert client.delete_message("1") is True
 
-@patch("requests.post")
-def test_mark_as_read_remote(mock_post: MagicMock | AsyncMock) -> None:
+@patch("httpx.Client.request")
+def test_mark_as_read_remote(mock_request: MagicMock) -> None:
     """Test marking a message as read via the remote service."""
-    mock_post.return_value.status_code = 200
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {}
+    mock_request.return_value = mock_response
     client = MailClientAdapter(base_url="http://localhost:8000")
     assert client.mark_as_read("1") is True
