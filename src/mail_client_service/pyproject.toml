@@ -1,0 +1,56 @@
+[project]
+name = "mail-client-service"
+version = "0.1.0"
+description = "FastAPI service for mail client abstraction."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "mail-client-api",
+    "gmail-client-impl",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "httpx>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+testpaths = ["tests", "src"]
+addopts = ["--cov", "--cov-report=term-missing"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", ]
+
+[tool.coverage.report]
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100  # Default formatting width
+target-version = "py311"  # Adjust based on actual Python version
+extend = "../../pyproject.toml"
+
+[tool.ruff.lint]
+ignore = []
+typing-extensions = false
+
+[tool.uv.sources]
+mail-client-api = { workspace = true }
+gmail-client-impl = { workspace = true }
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends", "fastapi.Query", "fastapi.params.Query"]

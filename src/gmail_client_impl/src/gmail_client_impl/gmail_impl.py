@@ -336,7 +336,7 @@ class GmailClient(mail_client_api.Client):
                 )
 
 
-def get_client_impl(*, interactive: bool = True) -> mail_client_api.Client:
+def get_client_impl(*, interactive: bool = False) -> mail_client_api.Client:
     """Return a configured :class:`GmailClient` instance."""
     return GmailClient(interactive=interactive)
 

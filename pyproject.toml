@@ -18,12 +18,15 @@ dev = [
     "pytest-cov>=6.2.1",
     "ruff>=0.12.7",
     "types-requests>=2.32.4.20250611",
+    "openapi-python-client>=0.26.2",
 ]
 
 [tool.uv.workspace]
 members = [
   "src/mail_client_api",
   "src/gmail_client_impl",
+  "src/mail_client_adapter",
+  "src/mail_client_service",
 ]
 
 [tool.ruff]
@@ -51,6 +54,8 @@ warn_unused_ignores = false
 module = [
     "google.*",
     "googleapiclient.*",
+    "mail_client_adapter.*",
+    "mail_client_service.*",
 ]
 ignore_missing_imports = true
 
