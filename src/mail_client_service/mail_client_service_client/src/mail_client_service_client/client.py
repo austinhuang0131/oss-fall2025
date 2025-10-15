@@ -1,3 +1,4 @@
+# mypy: disable_error_code="arg-type"
 import ssl
 from typing import Any
 

@@ -88,7 +88,7 @@ class TestClient(Client):
         return iter(messages[:max_results])
 
 _singleton_client = TestClient()
-def get_client_impl() -> mail_client_api.Client:
+def get_client_impl(*, interactive: bool = False) -> mail_client_api.Client:
     """Return a singleton :class:`TestClient` instance."""
     return _singleton_client
 

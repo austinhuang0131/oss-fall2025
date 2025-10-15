@@ -34,6 +34,9 @@ class MailClientAdapter(Client):
     def get_message(self, message_id: str) -> Message:
         """Fetch a message by ID from the remote service using OpenAPI client."""
         result = get_message_sync(message_id=message_id, client=self.client)
+        if result is None:
+            msg = "Failed to fetch message"
+            raise ValueError(msg)
         if hasattr(result, "additional_properties"):
             return ServiceMessage(result.additional_properties)
         if isinstance(result, dict):

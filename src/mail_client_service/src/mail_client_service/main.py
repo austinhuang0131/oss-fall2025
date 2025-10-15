@@ -9,7 +9,7 @@ if os.environ.get("MOCK_CLIENT") == "1":
     from . import test_client as gmail_client_impl
     test_client.register()
 else:
-    import gmail_client_impl  # noqa: F401
+    import gmail_client_impl  # type: ignore[no-redef] # noqa: F401
 from fastapi import Depends, FastAPI, HTTPException
 from mail_client_api import get_client
 from mail_client_api.client import Client
