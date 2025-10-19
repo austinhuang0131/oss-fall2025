@@ -9,8 +9,9 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from gmail_client_impl.gmail_impl import GmailClient
 from googleapiclient.errors import HttpError
+
+from gmail_client_impl.gmail_impl import GmailClient
 
 pytestmark = pytest.mark.circleci
 

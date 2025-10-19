@@ -8,6 +8,7 @@ import base64
 from email.message import EmailMessage
 
 import pytest
+
 from gmail_client_impl.message_impl import GmailMessage
 
 pytestmark = pytest.mark.circleci
