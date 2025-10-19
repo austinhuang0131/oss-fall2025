@@ -22,8 +22,9 @@ SERVICE_HOST = "127.0.0.1"
 SERVICE_PORT = 8001  # Use different port than development
 SERVICE_URL = f"http://{SERVICE_HOST}:{SERVICE_PORT}"
 
+os.environ["MOCK_CLIENT"] = "1"
+
 def _run_service() -> None:
-    os.environ["MOCK_CLIENT"] = "1"
     uvicorn.run(
         "mail_client_service:app",
         host=SERVICE_HOST,
