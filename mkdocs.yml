@@ -22,10 +22,10 @@ nav:
   - 'Overview': 'index.md'
   - 'Architecture': 'component.md'
   - 'API Reference':
-    - 'Message Protocol': 'api/message.md'
     - 'Mail Client API': 'api/mail_client_api.md'
     - 'Gmail Client Implementation': 'api/gmail_client_impl.md'
-    - 'Gmail Message Implementation': 'api/gmail_message_impl.md'
+    - 'Mail Client Adapter': 'api/mail_client_adapter.md'
+    - 'Mail Client Service': 'api/mail_client_service.md'
 
 markdown_extensions:
   - pymdownx.highlight:

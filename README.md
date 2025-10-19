@@ -21,8 +21,11 @@ This project is built on the principle of "programming integrated over time." Th
 
 The project is a `uv` workspace containing four primary packages:
 
-3.  **`mail_client_api`**: Defines the abstract `Client` base class (ABC). This is the contract for what actions a mail client can perform (e.g., `get_messages`).
-4.  **`gmail_client_impl`**: Provides the `GmailClient` class, a concrete implementation that uses the Google API to perform the actions defined in the `Client` abstraction.
+1.  **`mail_client_api`**: Defines the abstract `Client` base class (ABC). This is the contract for what actions a mail client can perform (e.g., `get_messages`).
+2.  **`gmail_client_impl`**: Provides the `GmailClient` class, a concrete implementation that uses the Google API to perform the actions defined in the `Client` abstraction.
+3.  **`mail_client_service`**: Provides a FastAPI service as well as an accompanying OpenAPI client to interact with a `Client`.
+4.  **`mail_client_adapter`**: Provides an adapter to interact with the aforemention FastAPI service as a `Client`.
+
 
 ## Project Structure
 
@@ -30,7 +33,9 @@ The project is a `uv` workspace containing four primary packages:
 ta-assignment/
 ├── src/                          # Source packages (uv workspace members)
 │   ├── mail_client_api/          # Abstract mail client base class (ABC)  
-│   └── gmail_client_impl/        # Gmail-specific client implementation
+│   ├── gmail_client_impl/        # Gmail-specific client implementation
+│   ├── mail_client_adapter/      # mail_client_api adapter of FastAPI
+│   └── mail_client_service/      # FastAPI and its API client
 ├── tests/                        # Integration and E2E tests
 │   ├── integration/              # Component integration tests
 │   └── e2e/                      # End-to-end application tests
