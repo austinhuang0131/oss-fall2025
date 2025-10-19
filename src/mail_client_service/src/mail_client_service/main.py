@@ -3,10 +3,8 @@
 import os
 from typing import Annotated
 
-from mail_client_service import test_client
-
 if os.environ.get("MOCK_CLIENT") == "1":
-    from . import test_client as gmail_client_impl
+    from . import test_client
     test_client.register()
 else:
     import gmail_client_impl  # type: ignore[no-redef] # noqa: F401

@@ -4,53 +4,83 @@ These tests verify that the service client works correctly with the running serv
 They use a mock Gmail client but test the real HTTP communication layer.
 """
 
-import multiprocessing
 import os
+import subprocess
+import time
 from collections.abc import Generator
-from multiprocessing.context import Process
+from http import HTTPStatus
+from subprocess import Popen
 from typing import Any
 
 import pytest
-import uvicorn
+import requests
 
 from mail_client_adapter import MailClientAdapter
 
-pytestmark = pytest.mark.integration
-
-# Constants
 SERVICE_HOST = "127.0.0.1"
 SERVICE_PORT = 8001  # Use different port than development
 SERVICE_URL = f"http://{SERVICE_HOST}:{SERVICE_PORT}"
-
-os.environ["MOCK_CLIENT"] = "1"
-
-def _run_service() -> None:
-    uvicorn.run(
-        "mail_client_service:app",
-        host=SERVICE_HOST,
-        port=SERVICE_PORT,
-        log_level="error",
-    )
+UVICORN_CMD = [
+    "uvicorn",
+    "mail_client_service:app",
+    "--host",
+    SERVICE_HOST,
+    "--port",
+    str(SERVICE_PORT),
+    "--log-level",
+    "error",
+]
 
 @pytest.fixture(scope="session")
-def service_process() -> Generator[Process, Any, None]:
-    """Fixture to start and stop the mail client service for testing."""
-    # Start service in a separate process
-    process = multiprocessing.Process(target=_run_service)
-    process.start()
+def service_process() -> Generator[Popen[str], Any, None]:
+    """Start uvicorn as a subprocess with MOCK_CLIENT=1 and tear it down afterwards."""
+    env = os.environ.copy()
+    env["MOCK_CLIENT"] = "1"
 
-    # Wait for service to start
-    import time
-    time.sleep(2)
+    # Launch uvicorn as a separate process, passing env explicitly.
+    proc = subprocess.Popen(  # noqa: S603
+        UVICORN_CMD,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
 
-    yield process
+    # Wait for it to become reachable (timeout if not ready).
+    timeout = 15.0
+    poll_interval = 0.2
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        # Quick health check by connecting to the port
+        try:
+            resp = requests.get(SERVICE_URL, timeout=0.5)
+            # If you have a specific health endpoint, check that instead.
+            if resp.status_code < HTTPStatus.INTERNAL_SERVER_ERROR:
+                break
+        except Exception:
+            time.sleep(poll_interval)
+    else:
+        # Timed out waiting for the server. Kill and raise with helpful logs.
+        proc.kill()
+        msg = "uvicorn failed to start within timeout."
+        raise RuntimeError(
+            msg,
+        )
 
-    # Cleanup
-    process.terminate()
-    process.join()
+    try:
+        yield proc
+    finally:
+        # Terminate the uvicorn process on teardown.
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
 
 @pytest.fixture
-def service_client(service_process: Process) -> MailClientAdapter:
+def service_client(service_process: Popen[Any]) -> MailClientAdapter:
     """Create a service client connected to the test service."""
     return MailClientAdapter(base_url=SERVICE_URL)
 
