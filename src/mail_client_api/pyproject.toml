@@ -17,10 +17,4 @@ packages = ["src/mail_client_api"]
 "src/mail_client_api/py.typed" = "mail_client_api/py.typed"
 
 [tool.ruff]
-line-length = 100  # Default formatting width
-target-version = "py311"  # Adjust based on actual Python version
 extend = "../../pyproject.toml"
-
-[tool.ruff.lint]
-ignore = []
-

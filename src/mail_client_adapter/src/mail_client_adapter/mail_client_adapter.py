@@ -13,7 +13,7 @@ from mail_client_service_client.api.default.get_message_messages_message_id_get 
 from mail_client_service_client.api.default.get_messages_messages_get import (
     sync as get_messages_sync,
 )
-from mail_client_service_client.api.default.mark_as_read_messages_message_id_mark_as_read_post import (  # noqa: E501
+from mail_client_service_client.api.default.mark_as_read_messages_message_id_mark_as_read_post import (
     sync as mark_as_read_sync,
 )
 from mail_client_service_client.client import Client as ServiceClient

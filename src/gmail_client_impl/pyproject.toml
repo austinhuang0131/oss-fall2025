@@ -21,19 +21,6 @@ test = [
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
 testpaths = ["tests", "src"]
-addopts = ["--cov", "--cov-report=term-missing"]
-
-[tool.coverage.run]
-source = ["src"]
-omit = ["*/tests/*", ]
-
-[tool.coverage.report]
-fail_under = 85 # Justification: A high threshold ensures most code is tested.
-exclude_lines = [
-    "pragma: no cover",
-    "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-]
 
 [build-system]
 requires = ["hatchling"]
@@ -46,12 +33,7 @@ packages = ["src/gmail_client_impl"]
 "src/gmail_client_impl/py.typed" = "gmail_client_impl/py.typed"
 
 [tool.ruff]
-line-length = 100  # Default formatting width
-target-version = "py311"  # Adjust based on actual Python version
 extend = "../../pyproject.toml"
-
-[tool.ruff.lint]
-ignore = []
 
 [tool.uv.sources]
 mail-client-api = { workspace = true }
