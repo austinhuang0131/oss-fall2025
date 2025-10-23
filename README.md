@@ -170,6 +170,35 @@ uv run mkdocs serve
 ```
 Open your browser to `http://127.0.0.1:8000` to view the site.
 
+## Running with Docker
+
+To build and run the FastAPI service in a Docker container:
+
+1. **Get credentials.** See [Running the Application](#running-the-application).
+
+2. **Build the Docker image:**
+
+   ```sh
+   docker build -t mail-client-service .
+   ```
+
+3. **Run the Docker container:**
+
+   ```sh
+   docker run -p 8000:8000 mail-client-service
+   ```
+
+The Dockerfile uses `uv` for dependency management, matching the local workflow. All dependencies are installed using:
+
+   ```sh
+   uv sync --all-packages
+   ```
+
+The container will start the FastAPI service and expose it on [http://localhost:8000](http://localhost:8000).
+
+- The Dockerfile runs the FastAPI app defined in `src/mail_client_service/main.py` using `uv`.
+- You can modify the Dockerfile or container settings as needed for development or production.
+
 ## Testing Infrastructure
 
 The project implements a sophisticated testing strategy designed for both local development and CI/CD environments:

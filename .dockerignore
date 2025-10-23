@@ -1,0 +1,38 @@
+# Ignore Python cache and build artifacts
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+.venv/
+
+
+# Ignore test and coverage files
+*.coverage
+.coverage
+htmlcov/
+tests/
+src/*/tests/
+
+# Ignore docs build artifacts
+docs/
+dist/
+build/
+
+# Ignore hidden folders
+**/.*/
+
+# Ignore editor/project files
+*.swp
+*.swo
+*.idea/
+*.vscode/
+
+# Ignore Markdown and design docs
+*.md
+*.rst
+
+# Ignore Dockerfile itself (not needed in container)
+Dockerfile
+.dockerignore
