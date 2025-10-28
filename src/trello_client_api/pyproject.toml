@@ -1,0 +1,51 @@
+[project]
+name = "trello-client-api"
+version = "0.1.0"
+description = "Abstract API for Trello client functionality"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+dependencies = []
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=trello_client_api --cov-report=term-missing --cov-report=html"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+select = ["E", "W", "F", "I", "N", "D", "UP", "YTT", "ANN", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+ignore = ["D203", "D213", "ANN101", "ANN102"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
