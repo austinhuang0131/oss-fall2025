@@ -3,7 +3,7 @@ name = "trello-client-service"
 version = "0.1.0"
 description = "FastAPI service for Trello client operations"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
@@ -12,6 +12,10 @@ dependencies = [
     "python-multipart>=0.0.6",
     "pydantic>=2.5.0",
 ]
+
+[tool.uv.sources]
+trello-client-api = { workspace = true }
+trello-client-impl = { workspace = true }
 
 [project.optional-dependencies]
 dev = [
@@ -33,7 +37,7 @@ testpaths = ["tests"]
 addopts = "--cov=trello_client_service --cov-report=term-missing --cov-fail-under=80"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -48,7 +52,7 @@ warn_no_return = true
 warn_unreachable = true
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 88
 select = [
     "E",  # pycodestyle errors

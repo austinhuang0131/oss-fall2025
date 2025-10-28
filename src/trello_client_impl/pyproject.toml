@@ -3,7 +3,7 @@ name = "trello-client-impl"
 version = "0.1.0"
 description = "Concrete implementation of the Trello client API"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "trello-client-api",
     "aiohttp>=3.9.0",
@@ -11,6 +11,9 @@ dependencies = [
     "pydantic>=2.5.0",
     "python-multipart>=0.0.6",
 ]
+
+[tool.uv.sources]
+trello-client-api = { workspace = true }
 
 [project.optional-dependencies]
 dev = [
@@ -32,7 +35,7 @@ testpaths = ["tests"]
 addopts = "--cov=trello_client_impl --cov-report=term-missing --cov-fail-under=80"
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -47,7 +50,7 @@ warn_no_return = true
 warn_unreachable = true
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 88
 select = [
     "E",  # pycodestyle errors
