@@ -11,11 +11,8 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest>=8.0.0",
-    "pytest-cov>=4.0.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
 ]
 
 [build-system]

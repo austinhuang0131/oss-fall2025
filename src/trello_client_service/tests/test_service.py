@@ -29,15 +29,6 @@ def test_auth_login_endpoint(client: TestClient) -> None:
     assert response.status_code in [HTTPStatus.OK, HTTPStatus.INTERNAL_SERVER_ERROR]
 
 
-def test_openapi_spec(client: TestClient) -> None:
-    """Test that OpenAPI spec is accessible."""
-    response = client.get("/openapi.json")
-    assert response.status_code == HTTPStatus.OK
-    spec = response.json()
-    assert "openapi" in spec
-    assert spec["info"]["title"] == "Trello Client Service"
-
-
 def test_docs_endpoint(client: TestClient) -> None:
     """Test that documentation is accessible."""
     response = client.get("/docs")

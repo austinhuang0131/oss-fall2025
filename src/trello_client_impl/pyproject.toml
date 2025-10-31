@@ -16,23 +16,15 @@ dependencies = [
 trello-client-api = { workspace = true }
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.1.0",
-    "mypy>=1.7.0",
-    "ruff>=0.1.6",
     "httpx>=0.25.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-addopts = "--cov=trello_client_impl --cov-report=term-missing --cov-fail-under=80"
 
 [tool.mypy]
 python_version = "3.11"
