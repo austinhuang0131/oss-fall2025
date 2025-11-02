@@ -116,8 +116,8 @@ class TrelloClientImpl(TrelloClient):
         self,
         method: str,
         endpoint: str,
-        params: dict[str, str] | None = None,
-        json_data: dict | None = None,
+        params: dict[str, str] | None = None, #SJ
+        json_data: dict[str, Any] | None = None,
     ) -> dict[str, Any] | list[Any]:
         """Make authenticated request to Trello API.
 
@@ -148,11 +148,14 @@ class TrelloClientImpl(TrelloClient):
         })
 
         async with aiohttp.ClientSession() as session:
+
+            '''#SJ
             kwargs = {"params": params}
             if json_data:
                 kwargs["json"] = json_data
+            '''
 
-            async with session.request(method, url, **kwargs) as response:
+            async with session.request(method, url, params=params, json=json_data) as response: #SJ 
                 if response.status == HTTPStatus.UNAUTHORIZED:
                     msg = "Authentication failed"
                     raise TrelloAuthenticationError(msg)
@@ -164,12 +167,16 @@ class TrelloClientImpl(TrelloClient):
                     msg = f"API error: {text}"
                     raise TrelloAPIError(msg, response.status)
 
-                return await response.json()
+                result = await response.json()
+                assert isinstance(result, (dict, list)), "Expected dict or list from API"
+                return result
 
     # User operations
     async def get_current_user(self) -> TrelloUser:
         """Get the current authenticated user."""
         data = await self._make_request("GET", "/members/me")
+        assert isinstance(data, dict), "Expected dict response from user endpoint" #SJ
+
         return TrelloUser(
             id=data["id"],
             username=data["username"],
@@ -181,6 +188,7 @@ class TrelloClientImpl(TrelloClient):
     async def get_boards(self) -> list[TrelloBoard]:
         """Get all boards accessible to the current user."""
         data = await self._make_request("GET", "/members/me/boards")
+        assert isinstance(data, list), "Expected list response from boards endpoint" #SJ
 
         boards = []
         for board_data in data:
@@ -198,6 +206,7 @@ class TrelloClientImpl(TrelloClient):
     async def get_board(self, board_id: str) -> TrelloBoard:
         """Get a specific board by ID."""
         data = await self._make_request("GET", f"/boards/{board_id}")
+        assert isinstance(data, dict), "Expected dict response from board endpoint" #SJ
 
         return TrelloBoard(
             id=data["id"],
@@ -218,6 +227,7 @@ class TrelloClientImpl(TrelloClient):
             params["desc"] = description
 
         data = await self._make_request("POST", "/boards", params=params)
+        assert isinstance(data, dict), "Expected dict response from board endpoint" #SJ
 
         return TrelloBoard(
             id=data["id"],
@@ -241,6 +251,7 @@ class TrelloClientImpl(TrelloClient):
             params["desc"] = description
 
         data = await self._make_request("PUT", f"/boards/{board_id}", params=params)
+        assert isinstance(data, dict), "Expected dict response from board endpoint" #SJ
 
         return TrelloBoard(
             id=data["id"],
@@ -259,6 +270,7 @@ class TrelloClientImpl(TrelloClient):
     async def get_lists(self, board_id: str) -> list[TrelloList]:
         """Get all lists in a board."""
         data = await self._make_request("GET", f"/boards/{board_id}/lists")
+        assert isinstance(data, list), "Expected list response from lists endpoint" #SJ
 
         lists = []
         for list_data in data:
@@ -277,6 +289,7 @@ class TrelloClientImpl(TrelloClient):
         """Create a new list in a board."""
         params = {"name": name, "idBoard": board_id}
         data = await self._make_request("POST", "/lists", params=params)
+        assert isinstance(data, dict), "Expected dict response from list endpoint" #SJ
 
         return TrelloList(
             id=data["id"],
@@ -297,6 +310,7 @@ class TrelloClientImpl(TrelloClient):
             params["name"] = name
 
         data = await self._make_request("PUT", f"/lists/{list_id}", params=params)
+        assert isinstance(data, dict), "Expected dict response from list endpoint" #SJ
 
         return TrelloList(
             id=data["id"],
@@ -310,6 +324,7 @@ class TrelloClientImpl(TrelloClient):
     async def get_cards(self, list_id: str) -> list[TrelloCard]:
         """Get all cards in a list."""
         data = await self._make_request("GET", f"/lists/{list_id}/cards")
+        assert isinstance(data, list), "Expected list response from cards endpoint" #SJ
 
         cards = []
         for card_data in data:
@@ -330,6 +345,7 @@ class TrelloClientImpl(TrelloClient):
     async def get_card(self, card_id: str) -> TrelloCard:
         """Get a specific card by ID."""
         data = await self._make_request("GET", f"/cards/{card_id}")
+        assert isinstance(data, dict), "Expected dict response from card endpoint" #SJ
 
         return TrelloCard(
             id=data["id"],
@@ -354,6 +370,7 @@ class TrelloClientImpl(TrelloClient):
             params["desc"] = description
 
         data = await self._make_request("POST", "/cards", params=params)
+        assert isinstance(data, dict), "Expected dict response from card endpoint" #SJ
 
         return TrelloCard(
             id=data["id"],
@@ -383,6 +400,7 @@ class TrelloClientImpl(TrelloClient):
             params["idList"] = list_id
 
         data = await self._make_request("PUT", f"/cards/{card_id}", params=params)
+        assert isinstance(data, dict), "Expected dict response from card endpoint" #SJ
 
         return TrelloCard(
             id=data["id"],
@@ -398,6 +416,7 @@ class TrelloClientImpl(TrelloClient):
     async def delete_card(self, card_id: str) -> bool:
         """Delete a card."""
         await self._make_request("DELETE", f"/cards/{card_id}")
+
         return True
 
     async def close(self) -> None:

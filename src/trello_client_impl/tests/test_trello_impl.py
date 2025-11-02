@@ -37,7 +37,7 @@ class TestTrelloClientImpl:
     async def test_get_current_user_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful user retrieval."""
         # Mock the _make_request method
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict[str, Any] | None=None) -> Any: #SJ
             return {
                 "id": "user123",
                 "username": "testuser",
@@ -57,7 +57,7 @@ class TestTrelloClientImpl:
 
     async def test_get_boards_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful board retrieval."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict[str, Any] | None=None) -> Any: #SJ
             return [
                 {
                     "id": "board123",

@@ -63,6 +63,7 @@ module = [
     "googleapiclient.*",
     "mail_client_adapter.*",
     "mail_client_service.*",
+    "asyncpg.*",
 ]
 ignore_missing_imports = true
 
