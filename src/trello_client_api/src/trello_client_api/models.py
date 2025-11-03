@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import datetime  # noqa: TC003
 
-if TYPE_CHECKING:
-    from datetime import datetime
+from pydantic import BaseModel
 
 
-@dataclass(frozen=True)
-class TrelloBoard:
+class TrelloBoard(BaseModel):
     """Represents a Trello board."""
 
     id: str
@@ -21,8 +18,7 @@ class TrelloBoard:
     created_at: datetime | None = None
 
 
-@dataclass(frozen=True)
-class TrelloList:
+class TrelloList(BaseModel):
     """Represents a Trello list within a board."""
 
     id: str
@@ -32,8 +28,7 @@ class TrelloList:
     closed: bool = False
 
 
-@dataclass(frozen=True)
-class TrelloCard:
+class TrelloCard(BaseModel):
     """Represents a Trello card within a list."""
 
     id: str
@@ -48,8 +43,7 @@ class TrelloCard:
     created_at: datetime | None = None
 
 
-@dataclass(frozen=True)
-class TrelloUser:
+class TrelloUser(BaseModel):
     """Represents a Trello user."""
 
     id: str
