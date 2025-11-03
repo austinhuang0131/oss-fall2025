@@ -1,7 +1,9 @@
 """FastAPI service for Trello client operations."""
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
@@ -16,6 +18,23 @@ from trello_client_api import (
     TrelloUser,
 )
 from trello_client_impl import TrelloClientImpl, TrelloOAuthHandler
+
+# Try to load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    # If python-dotenv is not available, check if .env file exists
+    # and manually load it
+    env_path = Path(".env")
+    if env_path.exists():
+        with env_path.open() as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ[key.strip()] = value.strip()
 
 
 @asynccontextmanager
