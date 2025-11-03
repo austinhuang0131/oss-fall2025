@@ -94,6 +94,64 @@ async def login() -> dict[str, str]:
         return {
             "authorization_url": auth_url,
         }
+
+
+# Serve the OAuth callback page that parses the fragment and POSTs to /auth/callback
+@app.get("/auth/callback_page")
+async def auth_callback_page() -> Response:
+    """Serve a page that parses the token from the fragment and POSTs to /auth/callback."""
+    html = """
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <title>Trello OAuth Callback</title>
+        <style>
+            body { font-family: sans-serif; margin: 2em; }
+            #status { margin-top: 1em; }
+        </style>
+    </head>
+    <body>
+        <h2>Authenticating with Trello...</h2>
+        <div id='status'>Waiting for token...</div>
+        <script>
+        function getFragmentParams() {
+            const hash = window.location.hash.substring(1);
+            const params = {};
+            hash.split('&').forEach(pair => {
+                const [key, value] = pair.split('=');
+                if (key) params[key] = decodeURIComponent(value || '');
+            });
+            return params;
+        }
+        async function sendToken(token) {
+            const res = await fetch('/auth/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            if (res.ok) {
+                document.getElementById('status').textContent = 'Authentication successful!';
+            } else {
+                const err = await res.text();
+                document.getElementById('status').textContent = 'Error: ' + err;
+            }
+        }
+        window.onload = function() {
+            const params = getFragmentParams();
+            if (params.token) {
+                document.getElementById('status').textContent = 'Token found, sending to server...';
+                sendToken(params.token);
+            } else {
+                document.getElementById('status').textContent = 'No token found in fragment.';
+            }
+        };
+        </script>
+    </body>
+    </html>
+    """
+    return Response(content=html, media_type="text/html")
+
 # Change /auth/callback to POST and accept token in body
 @app.post("/auth/callback")
 async def auth_callback(
