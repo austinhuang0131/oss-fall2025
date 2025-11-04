@@ -13,6 +13,7 @@ members = [
     "mail-client-api",
     "mail-client-service",
     "ta-assignment",
+    "trello-client-adapter",
     "trello-client-api",
     "trello-client-impl",
     "trello-client-service",
@@ -2082,6 +2083,32 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/84/ff/426ca8683cf7b753614480484f6437f568fd2fda2edbdf57a2d3d8b27a0b/tomli-2.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:70a251f8d4ba2d9ac2542eecf008b3c8a9fc5c3f9f02c56a9d7952612be2fdba", size = 119756, upload-time = "2025-10-08T22:01:45.234Z" },
     { url = "https://files.pythonhosted.org/packages/77/b8/0135fadc89e73be292b473cb820b4f5a08197779206b33191e801feeae40/tomli-2.3.0-py3-none-any.whl", hash = "sha256:e95b1af3c5b07d9e643909b5abbec77cd9f1217e6d0bca72b0234736b9fb1f1b", size = 14408, upload-time = "2025-10-08T22:01:46.04Z" },
 ]
+
+[[package]]
+name = "trello-client-adapter"
+version = "0.1.0"
+source = { editable = "src/trello_client_adapter" }
+dependencies = [
+    { name = "trello-client-api" },
+    { name = "trello-generated-client" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
+    { name = "trello-client-api", editable = "src/trello_client_api" },
+    { name = "trello-generated-client", editable = "src/trello_generated_client" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "trello-client-api"
