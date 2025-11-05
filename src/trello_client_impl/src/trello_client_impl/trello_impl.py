@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any
 
 import aiohttp
 from trello_client_api import (
@@ -58,7 +58,7 @@ class TrelloClientImpl(TrelloClient):
         method: str,
         endpoint: str,
         params: dict[str, str] | None = None,
-        json_data: dict[str, Any] | None = None,
+        json_data: dict | None = None,
     ) -> dict[str, Any] | list[Any]:
         """Make authenticated request to Trello API.
 
@@ -81,41 +81,20 @@ class TrelloClientImpl(TrelloClient):
 
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
-        # Add authentication parameters. Use an explicit typed mapping to
-        # satisfy mypy's expectations for aiohttp.ClientSession.request.
-        params_dict: dict[str, str] = {} if params is None else dict(params)
-        params_dict.update({
+        # Add authentication parameters
+        if params is None:
+            params = {}
+        params.update({
             "key": self.oauth_handler.api_key,
             "token": self.token,
         })
 
         async with aiohttp.ClientSession() as session:
-            if json_data is not None:
-                async with session.request(
-                    method,
-                    url,
-                    params=params_dict,
-                    json=json_data,
-                ) as response:
-                    if response.status == HTTPStatus.UNAUTHORIZED:
-                        msg = "Authentication failed"
-                        raise TrelloAuthenticationError(msg)
-                    if response.status == HTTPStatus.NOT_FOUND:
-                        msg = "Resource not found"
-                        raise TrelloNotFoundError(msg)
-                    if response.status >= HTTPStatus.BAD_REQUEST:
-                        text = await response.text()
-                        msg = f"API error: {text}"
-                        raise TrelloAPIError(msg, response.status)
+            kwargs = {"params": params}
+            if json_data:
+                kwargs["json"] = json_data
 
-                    data = cast(dict[str, Any] | list[Any], await response.json())
-                    return data
-
-            async with session.request(
-                method,
-                url,
-                params=params_dict,
-            ) as response:
+            async with session.request(method, url, **kwargs) as response:
                 if response.status == HTTPStatus.UNAUTHORIZED:
                     msg = "Authentication failed"
                     raise TrelloAuthenticationError(msg)
@@ -127,13 +106,12 @@ class TrelloClientImpl(TrelloClient):
                     msg = f"API error: {text}"
                     raise TrelloAPIError(msg, response.status)
 
-                data = cast(dict[str, Any] | list[Any], await response.json())
-                return data
+                return await response.json()
 
     # User operations
     async def get_current_user(self) -> TrelloUser:
         """Get the current authenticated user."""
-        data = cast(dict[str, Any], await self._make_request("GET", "/members/me"))
+        data = await self._make_request("GET", "/members/me")
         return TrelloUser(
             id=data["id"],
             username=data["username"],
@@ -144,7 +122,7 @@ class TrelloClientImpl(TrelloClient):
     # Board operations
     async def get_boards(self) -> list[TrelloBoard]:
         """Get all boards accessible to the current user."""
-        data = cast(list[dict[str, Any]], await self._make_request("GET", "/members/me/boards"))
+        data = await self._make_request("GET", "/members/me/boards")
 
         boards = []
         for board_data in data:
@@ -161,7 +139,7 @@ class TrelloClientImpl(TrelloClient):
 
     async def get_board(self, board_id: str) -> TrelloBoard:
         """Get a specific board by ID."""
-        data = cast(dict[str, Any], await self._make_request("GET", f"/boards/{board_id}"))
+        data = await self._make_request("GET", f"/boards/{board_id}")
 
         return TrelloBoard(
             id=data["id"],
@@ -177,11 +155,11 @@ class TrelloClientImpl(TrelloClient):
         description: str | None = None,
     ) -> TrelloBoard:
         """Create a new board."""
-        params: dict[str, str] = {"name": name}
+        params = {"name": name}
         if description:
             params["desc"] = description
 
-        data = cast(dict[str, Any], await self._make_request("POST", "/boards", params=params))
+        data = await self._make_request("POST", "/boards", params=params)
 
         return TrelloBoard(
             id=data["id"],
@@ -198,13 +176,13 @@ class TrelloClientImpl(TrelloClient):
         description: str | None = None,
     ) -> TrelloBoard:
         """Update an existing board."""
-        params: dict[str, str] = {}
+        params = {}
         if name:
             params["name"] = name
         if description is not None:
             params["desc"] = description
 
-        data = cast(dict[str, Any], await self._make_request("PUT", f"/boards/{board_id}", params=params))
+        data = await self._make_request("PUT", f"/boards/{board_id}", params=params)
 
         return TrelloBoard(
             id=data["id"],
@@ -222,7 +200,7 @@ class TrelloClientImpl(TrelloClient):
     # List operations
     async def get_lists(self, board_id: str) -> list[TrelloList]:
         """Get all lists in a board."""
-        data = cast(list[dict[str, Any]], await self._make_request("GET", f"/boards/{board_id}/lists"))
+        data = await self._make_request("GET", f"/boards/{board_id}/lists")
 
         lists = []
         for list_data in data:
@@ -239,8 +217,8 @@ class TrelloClientImpl(TrelloClient):
 
     async def create_list(self, board_id: str, name: str) -> TrelloList:
         """Create a new list in a board."""
-        params: dict[str, str] = {"name": name, "idBoard": board_id}
-        data = cast(dict[str, Any], await self._make_request("POST", "/lists", params=params))
+        params = {"name": name, "idBoard": board_id}
+        data = await self._make_request("POST", "/lists", params=params)
 
         return TrelloList(
             id=data["id"],
@@ -256,11 +234,11 @@ class TrelloClientImpl(TrelloClient):
         name: str | None = None,
     ) -> TrelloList:
         """Update an existing list."""
-        params: dict[str, str] = {}
+        params = {}
         if name:
             params["name"] = name
 
-        data = cast(dict[str, Any], await self._make_request("PUT", f"/lists/{list_id}", params=params))
+        data = await self._make_request("PUT", f"/lists/{list_id}", params=params)
 
         return TrelloList(
             id=data["id"],
@@ -273,7 +251,7 @@ class TrelloClientImpl(TrelloClient):
     # Card operations
     async def get_cards(self, list_id: str) -> list[TrelloCard]:
         """Get all cards in a list."""
-        data = cast(list[dict[str, Any]], await self._make_request("GET", f"/lists/{list_id}/cards"))
+        data = await self._make_request("GET", f"/lists/{list_id}/cards")
 
         cards = []
         for card_data in data:
@@ -293,7 +271,7 @@ class TrelloClientImpl(TrelloClient):
 
     async def get_card(self, card_id: str) -> TrelloCard:
         """Get a specific card by ID."""
-        data = cast(dict[str, Any], await self._make_request("GET", f"/cards/{card_id}"))
+        data = await self._make_request("GET", f"/cards/{card_id}")
 
         return TrelloCard(
             id=data["id"],
@@ -313,11 +291,11 @@ class TrelloClientImpl(TrelloClient):
         description: str | None = None,
     ) -> TrelloCard:
         """Create a new card in a list."""
-        params: dict[str, str] = {"name": name, "idList": list_id}
+        params = {"name": name, "idList": list_id}
         if description:
             params["desc"] = description
 
-        data = cast(dict[str, Any], await self._make_request("POST", "/cards", params=params))
+        data = await self._make_request("POST", "/cards", params=params)
 
         return TrelloCard(
             id=data["id"],
@@ -338,7 +316,7 @@ class TrelloClientImpl(TrelloClient):
         list_id: str | None = None,
     ) -> TrelloCard:
         """Update an existing card."""
-        params: dict[str, str] = {}
+        params = {}
         if name:
             params["name"] = name
         if description is not None:
@@ -346,7 +324,7 @@ class TrelloClientImpl(TrelloClient):
         if list_id:
             params["idList"] = list_id
 
-        data = cast(dict[str, Any], await self._make_request("PUT", f"/cards/{card_id}", params=params))
+        data = await self._make_request("PUT", f"/cards/{card_id}", params=params)
 
         return TrelloCard(
             id=data["id"],
