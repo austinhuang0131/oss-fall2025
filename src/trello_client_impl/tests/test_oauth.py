@@ -25,6 +25,64 @@ class TestTrelloOAuthHandler:
         with pytest.raises(TrelloAuthenticationError, match="No token provided"):
             await handler.exchange_token("")
 
+    async def test_exchange_token_success_path_is_validated(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Successful token validation should return the token itself."""
+        handler = TrelloOAuthHandler(api_key="k", api_secret="s", redirect_uri="http://localhost/callback")
+
+        class DummyResp:
+            status = 200
+
+            async def __aenter__(self) -> "DummyResp":  # noqa: D401 - tiny helper
+                return self
+
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:  # noqa: D401 - tiny helper
+                return None
+
+        class DummySession:
+            async def __aenter__(self) -> "DummySession":  # noqa: D401
+                return self
+
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:  # noqa: D401
+                return None
+
+            def get(self, *_args: object, **_kwargs: object) -> DummyResp:  # noqa: D401
+                return DummyResp()
+
+        import trello_client_impl.oauth as oauth_mod
+
+        monkeypatch.setattr(oauth_mod, "aiohttp", type("X", (), {"ClientSession": DummySession}))
+        out = await handler.exchange_token("abc")
+        assert out == "abc"
+
+    async def test_exchange_token_status_error_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Non-OK validation status should raise authentication error."""
+        handler = TrelloOAuthHandler(api_key="k", api_secret="s", redirect_uri="http://localhost/callback")
+
+        class DummyResp:
+            status = 401
+
+            async def __aenter__(self) -> "DummyResp":
+                return self
+
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:
+                return None
+
+        class DummySession:
+            async def __aenter__(self) -> "DummySession":
+                return self
+
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:
+                return None
+
+            def get(self, *_args: object, **_kwargs: object) -> DummyResp:
+                return DummyResp()
+
+        import trello_client_impl.oauth as oauth_mod
+
+        monkeypatch.setattr(oauth_mod, "aiohttp", type("X", (), {"ClientSession": DummySession}))
+        with pytest.raises(TrelloAuthenticationError, match="Token validation failed"):
+            await handler.exchange_token("bad")
+
     def test_from_env_validates_presence(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """from_env should validate environment variables and construct on success."""
         # Ensure clean env
