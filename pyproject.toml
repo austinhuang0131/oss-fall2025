@@ -68,6 +68,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Exclude the generated OpenAPI client from static analysis to avoid
+# duplicate module path issues in CI (package is vendored under src/).
+[[tool.mypy.overrides]]
+module = [
+    "trello_generated_client.*",
+]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 pythonpath = [
     ".", 
