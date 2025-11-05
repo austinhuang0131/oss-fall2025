@@ -200,7 +200,8 @@ class TestTrelloClientImpl:
     async def test_update_board_with_description(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure description parameter is forwarded when provided."""
         async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
-            assert params and params.get("desc") == "D2"
+            assert params is not None
+            assert params.get("desc") == "D2"
             return {"id": "b2", "name": params.get("name", "B"), "desc": params.get("desc"), "closed": False, "url": "u"}
         monkeypatch.setattr(client, "_make_request", mock_make_request)
         out = await client.update_board("b2", name="B", description="D2")
@@ -209,8 +210,11 @@ class TestTrelloClientImpl:
     async def test_update_card_with_description_and_list(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure update_card forwards description and list_id when provided."""
         async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
-            assert params and params.get("desc") == "dd" and params.get("idList") == "l9"
+            assert params is not None
+            assert params.get("desc") == "dd"
+            assert params.get("idList") == "l9"
             return {"id": "c9", "name": params.get("name", "C"), "idList": "l9", "idBoard": "b1", "desc": params.get("desc"), "pos": 0.0, "closed": False, "url": None}
         monkeypatch.setattr(client, "_make_request", mock_make_request)
         card = await client.update_card("c9", name="C", description="dd", list_id="l9")
-        assert card.description == "dd" and card.list_id == "l9"
+        assert card.description == "dd"
+        assert card.list_id == "l9"

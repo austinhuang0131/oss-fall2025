@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from trello_client_api import TrelloAuthenticationError
 from trello_client_impl.oauth import TrelloOAuthHandler
 
 
@@ -21,7 +22,7 @@ class TestTrelloOAuthHandler:
     async def test_exchange_token_without_token_raises(self) -> None:
         """Calling exchange_token with empty token should raise auth error."""
         handler = TrelloOAuthHandler(api_key="k", api_secret="s", redirect_uri="http://localhost/callback")
-        with pytest.raises(Exception):
+        with pytest.raises(TrelloAuthenticationError, match="No token provided"):
             await handler.exchange_token("")
 
     def test_from_env_validates_presence(self, monkeypatch: pytest.MonkeyPatch) -> None:
