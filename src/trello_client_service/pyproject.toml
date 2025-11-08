@@ -7,14 +7,14 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
-    "trello-client-api",
+    "kanban-client-api",
     "trello-client-impl",
     "python-multipart>=0.0.6",
     "pydantic>=2.5.0",
 ]
 
 [tool.uv.sources]
-trello-client-api = { workspace = true }
+kanban-client-api = { workspace = true }
 trello-client-impl = { workspace = true }
 
 [project.optional-dependencies]

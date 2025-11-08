@@ -5,12 +5,12 @@ description = "FastAPI service for Trello client operations"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "trello-client-api",
+    "kanban-client-api",
     "trello-generated-client",
 ]
 
 [tool.uv.sources]
-trello-client-api = { workspace = true }
+kanban-client-api = { workspace = true }
 trello-generated-client = { workspace = true }
 
 [project.optional-dependencies]

@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from trello_client_api import TrelloAuthenticationError
+from kanban_client_api import KanbanAuthenticationError
 from trello_client_impl.oauth import TrelloOAuthHandler
 
 
@@ -22,7 +22,7 @@ class TestTrelloOAuthHandler:
     async def test_exchange_token_without_token_raises(self) -> None:
         """Calling exchange_token with empty token should raise auth error."""
         handler = TrelloOAuthHandler(api_key="k", api_secret="s", redirect_uri="http://localhost/callback")
-        with pytest.raises(TrelloAuthenticationError, match="No token provided"):
+        with pytest.raises(KanbanAuthenticationError, match="No token provided"):
             await handler.exchange_token("")
 
     async def test_exchange_token_success_path_is_validated(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,7 +80,7 @@ class TestTrelloOAuthHandler:
         import trello_client_impl.oauth as oauth_mod
 
         monkeypatch.setattr(oauth_mod, "aiohttp", type("X", (), {"ClientSession": DummySession}))
-        with pytest.raises(TrelloAuthenticationError, match="Token validation failed"):
+        with pytest.raises(KanbanAuthenticationError, match="Token validation failed"):
             await handler.exchange_token("bad")
 
     def test_from_env_validates_presence(self, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -9,12 +9,12 @@ resolution-markers = [
 [manifest]
 members = [
     "gmail-client-impl",
+    "kanban-client-api",
     "mail-client-adapter",
     "mail-client-api",
     "mail-client-service",
     "ta-assignment",
     "trello-client-adapter",
-    "trello-client-api",
     "trello-client-impl",
     "trello-client-service",
     "trello-generated-client",
@@ -841,6 +841,20 @@ sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
 ]
+
+[[package]]
+name = "kanban-client-api"
+version = "0.1.0"
+source = { editable = "src/kanban_client_api" }
+
+[package.optional-dependencies]
+test = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" }]
+provides-extras = ["test"]
 
 [[package]]
 name = "mail-client-adapter"
@@ -2089,7 +2103,7 @@ name = "trello-client-adapter"
 version = "0.1.0"
 source = { editable = "src/trello_client_adapter" }
 dependencies = [
-    { name = "trello-client-api" },
+    { name = "kanban-client-api" },
     { name = "trello-generated-client" },
 ]
 
@@ -2103,25 +2117,11 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "kanban-client-api", editable = "src/kanban_client_api" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
-    { name = "trello-client-api", editable = "src/trello_client_api" },
     { name = "trello-generated-client", editable = "src/trello_generated_client" },
 ]
-provides-extras = ["test"]
-
-[[package]]
-name = "trello-client-api"
-version = "0.1.0"
-source = { editable = "src/trello_client_api" }
-
-[package.optional-dependencies]
-test = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" }]
 provides-extras = ["test"]
 
 [[package]]
@@ -2131,9 +2131,9 @@ source = { editable = "src/trello_client_impl" }
 dependencies = [
     { name = "aiohttp" },
     { name = "asyncpg" },
+    { name = "kanban-client-api" },
     { name = "pydantic" },
     { name = "python-multipart" },
-    { name = "trello-client-api" },
 ]
 
 [package.optional-dependencies]
@@ -2148,11 +2148,11 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "kanban-client-api", editable = "src/kanban_client_api" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "trello-client-api", editable = "src/trello_client_api" },
 ]
 provides-extras = ["test"]
 
@@ -2162,9 +2162,9 @@ version = "0.1.0"
 source = { editable = "src/trello_client_service" }
 dependencies = [
     { name = "fastapi" },
+    { name = "kanban-client-api" },
     { name = "pydantic" },
     { name = "python-multipart" },
-    { name = "trello-client-api" },
     { name = "trello-client-impl" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -2180,11 +2180,11 @@ test = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "kanban-client-api", editable = "src/kanban_client_api" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "trello-client-api", editable = "src/trello_client_api" },
     { name = "trello-client-impl", editable = "src/trello_client_impl" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]

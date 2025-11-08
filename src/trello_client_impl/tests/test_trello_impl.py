@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from trello_client_api import TrelloBoard, TrelloUser
+from kanban_client_api import KanbanBoard, KanbanUser
 
 from trello_client_impl import TrelloClientImpl, TrelloOAuthHandler
 
@@ -49,7 +49,7 @@ class TestTrelloClientImpl:
 
         user = await client.get_current_user()
 
-        assert isinstance(user, TrelloUser)
+        assert isinstance(user, KanbanUser)
         assert user.id == "user123"
         assert user.username == "testuser"
         assert user.full_name == "Test User"
@@ -74,7 +74,7 @@ class TestTrelloClientImpl:
 
         assert len(boards) == 1
         board = boards[0]
-        assert isinstance(board, TrelloBoard)
+        assert isinstance(board, KanbanBoard)
         assert board.id == "board123"
         assert board.name == "Test Board"
         assert board.description == "Test Description"

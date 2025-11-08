@@ -1,7 +1,7 @@
 [project]
-name = "trello-client-api"
+name = "kanban-client-api"
 version = "0.1.0"
-description = "Abstract API for Trello client functionality"
+description = "Abstract API for Kanban client functionality"
 authors = [
     {name = "Your Name", email = "your.email@example.com"},
 ]
@@ -21,7 +21,7 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=trello_client_api --cov-report=term-missing --cov-report=html"
+addopts = "--cov=kanban_client_api --cov-report=term-missing --cov-report=html"
 
 [tool.mypy]
 python_version = "3.11"
@@ -37,6 +37,3 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-
-[tool.ruff]
-extend = "../../pyproject.toml"

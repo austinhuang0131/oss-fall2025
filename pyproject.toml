@@ -28,7 +28,7 @@ members = [
   "src/gmail_client_impl",
   "src/mail_client_adapter",
   "src/mail_client_service",
-  "src/trello_client_api",
+  "src/kanban_client_api",
   "src/trello_client_impl", 
   "src/trello_client_service",
   "src/trello_client_adapter",
@@ -54,7 +54,14 @@ extend-immutable-calls = ["Depends", "fastapi.Depends", "fastapi.params.Depends"
 [tool.mypy]
 strict = true
 explicit_package_bases = true # Required for src layout
-mypy_path = ["src/mail_client_api/src", "src/gmail_client_impl/src", "src/trello_client_api/src", "src/trello_client_impl/src", "src/trello_client_service/src", "src/trello_client_adapter/src"]
+mypy_path = [
+    "src/mail_client_api/src",
+    "src/gmail_client_impl/src",
+    "src/kanban_client_api/src",
+    "src/trello_client_impl/src",
+    "src/trello_client_service/src",
+    "src/trello_client_adapter/src"
+]
 ignore_missing_imports = false
 warn_unused_ignores = false
 exclude = ["^src/trello_generated_client/"]

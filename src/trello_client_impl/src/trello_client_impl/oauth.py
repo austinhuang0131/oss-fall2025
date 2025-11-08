@@ -7,7 +7,7 @@ import urllib.parse
 from http import HTTPStatus
 
 import aiohttp
-from trello_client_api import TrelloAuthenticationError
+from kanban_client_api import KanbanAuthenticationError
 
 
 class TrelloOAuthHandler:
@@ -68,7 +68,7 @@ class TrelloOAuthHandler:
         # Trello uses a simpler OAuth 1.0a-like flow
         if not token:
             msg = "No token provided"
-            raise TrelloAuthenticationError(msg)
+            raise KanbanAuthenticationError(msg)
 
         # Validate the token by making a test API call
         async with aiohttp.ClientSession() as session:
@@ -78,7 +78,7 @@ class TrelloOAuthHandler:
             async with session.get(test_url, params=params) as response:
                 if response.status != HTTPStatus.OK:
                     msg = f"Token validation failed: {response.status}"
-                    raise TrelloAuthenticationError(
+                    raise KanbanAuthenticationError(
                         msg,
                     )
 

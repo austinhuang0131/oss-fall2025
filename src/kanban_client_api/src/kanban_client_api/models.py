@@ -1,4 +1,4 @@
-"""Data models for Trello entities."""
+"""Data models for Kanban entities."""
 
 from __future__ import annotations
 
@@ -7,10 +7,12 @@ from datetime import datetime  # noqa: TC003
 from pydantic import BaseModel
 
 
-class TrelloBoard(BaseModel):
+class KanbanBoard(BaseModel):
+    """Represents a Kanban board."""
+
     @classmethod
-    def from_generated(cls, generated_board: object) -> TrelloBoard:
-        """Convert from generated client board model to TrelloBoard."""
+    def from_generated(cls, generated_board: object) -> KanbanBoard:
+        """Convert from generated client board model to KanbanBoard."""
         return cls(
             id=getattr(generated_board, "id", ""),
             name=getattr(generated_board, "name", ""),
@@ -19,7 +21,7 @@ class TrelloBoard(BaseModel):
             url=getattr(generated_board, "url", None),
             created_at=getattr(generated_board, "created_at", None),
         )
-    """Represents a Trello board."""
+    """Represents a Kanban board."""
 
     id: str
     name: str
@@ -29,10 +31,12 @@ class TrelloBoard(BaseModel):
     created_at: datetime | None = None
 
 
-class TrelloList(BaseModel):
+class KanbanList(BaseModel):
+    """Represents a Kanban list within a board."""
+
     @classmethod
-    def from_generated(cls, generated_list: object) -> TrelloList:
-        """Convert from generated client list model to TrelloList."""
+    def from_generated(cls, generated_list: object) -> KanbanList:
+        """Convert from generated client list model to KanbanList."""
         return cls(
             id=getattr(generated_list, "id", ""),
             name=getattr(generated_list, "name", ""),
@@ -40,7 +44,7 @@ class TrelloList(BaseModel):
             position=getattr(generated_list, "position", 0.0),
             closed=getattr(generated_list, "closed", False),
         )
-    """Represents a Trello list within a board."""
+    """Represents a Kanban list within a board."""
 
     id: str
     name: str
@@ -49,10 +53,12 @@ class TrelloList(BaseModel):
     closed: bool = False
 
 
-class TrelloCard(BaseModel):
+class KanbanCard(BaseModel):
+    """Represents a Kanban card within a list."""
+
     @classmethod
-    def from_generated(cls, generated_card: object) -> TrelloCard:
-        """Convert from generated client card model to TrelloCard."""
+    def from_generated(cls, generated_card: object) -> KanbanCard:
+        """Convert from generated client card model to KanbanCard."""
         return cls(
             id=getattr(generated_card, "id", ""),
             name=getattr(generated_card, "name", ""),
@@ -65,7 +71,7 @@ class TrelloCard(BaseModel):
             url=getattr(generated_card, "url", None),
             created_at=getattr(generated_card, "created_at", None),
         )
-    """Represents a Trello card within a list."""
+    """Represents a Kanban card within a list."""
 
     id: str
     name: str
@@ -79,17 +85,19 @@ class TrelloCard(BaseModel):
     created_at: datetime | None = None
 
 
-class TrelloUser(BaseModel):
+class KanbanUser(BaseModel):
+    """Represents a Kanban user."""
+
     @classmethod
-    def from_generated(cls, generated_user: object) -> TrelloUser:
-        """Convert from generated client user model to TrelloUser."""
+    def from_generated(cls, generated_user: object) -> KanbanUser:
+        """Convert from generated client user model to KanbanUser."""
         return cls(
             id=getattr(generated_user, "id", ""),
             username=getattr(generated_user, "username", ""),
             full_name=getattr(generated_user, "full_name", None),
             email=getattr(generated_user, "email", None),
         )
-    """Represents a Trello user."""
+    """Represents a Kanban user."""
 
     id: str
     username: str

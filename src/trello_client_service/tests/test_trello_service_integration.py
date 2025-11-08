@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from trello_client_api import TrelloBoard, TrelloCard, TrelloList, TrelloUser
+from kanban_client_api import KanbanBoard, KanbanCard, KanbanList, KanbanUser
 
 from trello_client_service import app
 
@@ -73,7 +73,7 @@ def auth_client() -> TestClient:
 @patch("trello_client_service.main.TrelloClientImpl.get_current_user", autospec=True)
 def test_get_current_user(mock_get_user: Mock) -> None:
     """Test /users/me returns user info."""
-    mock_get_user.return_value = TrelloUser(
+    mock_get_user.return_value = KanbanUser(
         id="u1", username="test", full_name="Test User", email="test@example.com",
     )
     response = auth_client().get("/users/me")
@@ -86,7 +86,7 @@ def test_get_current_user(mock_get_user: Mock) -> None:
 def test_get_boards(mock_get_boards: Mock) -> None:
     """Test /boards returns list of boards."""
     mock_get_boards.return_value = [
-        TrelloBoard(id="b1", name="Board1", description=None, closed=False, url="url1"),
+    KanbanBoard(id="b1", name="Board1", description=None, closed=False, url="url1"),
     ]
     response = auth_client().get("/boards")
     assert response.status_code == HTTPStatus.OK
@@ -95,7 +95,7 @@ def test_get_boards(mock_get_boards: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.get_board", autospec=True)
 def test_get_board(mock_get_board: Mock) -> None:
     """Test /boards/{board_id} returns board info."""
-    mock_get_board.return_value = TrelloBoard(id="b1", name="Board1", description=None, closed=False, url="url1")
+    mock_get_board.return_value = KanbanBoard(id="b1", name="Board1", description=None, closed=False, url="url1")
     response = auth_client().get("/boards/b1")
     assert response.status_code == HTTPStatus.OK
     assert response.json()["id"] == "b1"
@@ -103,7 +103,7 @@ def test_get_board(mock_get_board: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.create_board", autospec=True)
 def test_create_board(mock_create_board: Mock) -> None:
     """Test /boards POST creates a board."""
-    mock_create_board.return_value = TrelloBoard(id="b2", name="Board2", description="desc", closed=False, url="url2")
+    mock_create_board.return_value = KanbanBoard(id="b2", name="Board2", description="desc", closed=False, url="url2")
     response = auth_client().post("/boards", params={"name": "Board2", "description": "desc"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Board2"
@@ -111,7 +111,7 @@ def test_create_board(mock_create_board: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.update_board", autospec=True)
 def test_update_board(mock_update_board: Mock) -> None:
     """Test /boards/{board_id} PUT updates a board."""
-    mock_update_board.return_value = TrelloBoard(id="b2", name="Board2-updated", description=None, closed=False, url="url2")
+    mock_update_board.return_value = KanbanBoard(id="b2", name="Board2-updated", description=None, closed=False, url="url2")
     response = auth_client().put("/boards/b2", params={"name": "Board2-updated"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Board2-updated"
@@ -129,7 +129,7 @@ def test_delete_board(mock_delete_board: Mock) -> None:
 def test_get_lists(mock_get_lists: Mock) -> None:
     """Test /boards/{board_id}/lists returns lists."""
     mock_get_lists.return_value = [
-        TrelloList(id="l1", name="List1", board_id="b1", position=0.0, closed=False),
+    KanbanList(id="l1", name="List1", board_id="b1", position=0.0, closed=False),
     ]
     response = auth_client().get("/boards/b1/lists")
     assert response.status_code == HTTPStatus.OK
@@ -138,7 +138,7 @@ def test_get_lists(mock_get_lists: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.create_list", autospec=True)
 def test_create_list(mock_create_list: Mock) -> None:
     """Test /boards/{board_id}/lists POST creates a list."""
-    mock_create_list.return_value = TrelloList(id="l2", name="List2", board_id="b1", position=0.0, closed=False)
+    mock_create_list.return_value = KanbanList(id="l2", name="List2", board_id="b1", position=0.0, closed=False)
     response = auth_client().post("/boards/b1/lists", params={"name": "List2"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "List2"
@@ -146,7 +146,7 @@ def test_create_list(mock_create_list: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.update_list", autospec=True)
 def test_update_list(mock_update_list: Mock) -> None:
     """Test /lists/{list_id} PUT updates a list."""
-    mock_update_list.return_value = TrelloList(id="l2", name="List2-updated", board_id="b1", position=0.0, closed=False)
+    mock_update_list.return_value = KanbanList(id="l2", name="List2-updated", board_id="b1", position=0.0, closed=False)
     response = auth_client().put("/lists/l2", params={"name": "List2-updated"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "List2-updated"
@@ -156,7 +156,7 @@ def test_update_list(mock_update_list: Mock) -> None:
 def test_get_cards(mock_get_cards: Mock) -> None:
     """Test /lists/{list_id}/cards returns cards."""
     mock_get_cards.return_value = [
-        TrelloCard(id="c1", name="Card1", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None),
+    KanbanCard(id="c1", name="Card1", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None),
     ]
     response = auth_client().get("/lists/l1/cards")
     assert response.status_code == HTTPStatus.OK
@@ -165,7 +165,7 @@ def test_get_cards(mock_get_cards: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.get_card", autospec=True)
 def test_get_card(mock_get_card: Mock) -> None:
     """Test /cards/{card_id} returns card info."""
-    mock_get_card.return_value = TrelloCard(id="c1", name="Card1", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
+    mock_get_card.return_value = KanbanCard(id="c1", name="Card1", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
     response = auth_client().get("/cards/c1")
     assert response.status_code == HTTPStatus.OK
     assert response.json()["id"] == "c1"
@@ -173,7 +173,7 @@ def test_get_card(mock_get_card: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.create_card", autospec=True)
 def test_create_card(mock_create_card: Mock) -> None:
     """Test /lists/{list_id}/cards POST creates a card."""
-    mock_create_card.return_value = TrelloCard(id="c2", name="Card2", list_id="l1", board_id="b1", description="desc", position=0.0, closed=False, url=None)
+    mock_create_card.return_value = KanbanCard(id="c2", name="Card2", list_id="l1", board_id="b1", description="desc", position=0.0, closed=False, url=None)
     response = auth_client().post("/lists/l1/cards", params={"name": "Card2", "description": "desc"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Card2"
@@ -181,7 +181,7 @@ def test_create_card(mock_create_card: Mock) -> None:
 @patch("trello_client_service.main.TrelloClientImpl.update_card", autospec=True)
 def test_update_card(mock_update_card: Mock) -> None:
     """Test /cards/{card_id} PUT updates a card."""
-    mock_update_card.return_value = TrelloCard(id="c2", name="Card2-updated", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
+    mock_update_card.return_value = KanbanCard(id="c2", name="Card2-updated", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
     response = auth_client().put("/cards/c2", params={"name": "Card2-updated"})
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Card2-updated"
