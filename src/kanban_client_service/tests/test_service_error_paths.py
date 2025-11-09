@@ -9,10 +9,9 @@ from kanban_client_api.exceptions import (
     KanbanAuthenticationError,
     KanbanNotFoundError,
 )
-
 from kanban_client_api.models import KanbanBoard
-from kanban_client_service.main import app
 
+from kanban_client_service.main import app
 
 client = TestClient(app)
 

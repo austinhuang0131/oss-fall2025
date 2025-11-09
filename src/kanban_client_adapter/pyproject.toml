@@ -41,3 +41,6 @@ warn_unreachable = true
 
 [tool.ruff]
 extend = "../../pyproject.toml"
+
+[tool.ruff.lint.pylint]
+max-args = 10

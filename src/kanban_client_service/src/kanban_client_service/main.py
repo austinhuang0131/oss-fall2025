@@ -190,7 +190,7 @@ async def auth_callback(
 # User endpoints
 @app.get(
     "/users/me",
-    responses={**common_error_responses},
+    responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def get_current_user(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -207,7 +207,7 @@ async def get_current_user(
 # Board endpoints
 @app.get(
     "/boards",
-    responses={**common_error_responses},
+    responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def get_boards(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -223,7 +223,7 @@ async def get_boards(
 
 @app.get(
     "/boards/{board_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def get_board(
     board_id: str,
@@ -242,7 +242,7 @@ async def get_board(
 
 @app.post(
     "/boards",
-    responses={**common_error_responses},
+    responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def create_board(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -260,7 +260,7 @@ async def create_board(
 
 @app.put(
     "/boards/{board_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_board(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -281,7 +281,7 @@ async def update_board(
 
 @app.delete(
     "/boards/{board_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def delete_board(
     board_id: str,
@@ -303,7 +303,7 @@ async def delete_board(
 # List endpoints
 @app.get(
     "/boards/{board_id}/lists",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def get_lists(
     board_id: str,
@@ -322,7 +322,7 @@ async def get_lists(
 
 @app.post(
     "/boards/{board_id}/lists",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def create_list(
     board_id: str,
@@ -342,7 +342,7 @@ async def create_list(
 
 @app.put(
     "/lists/{list_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_list(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -363,7 +363,7 @@ async def update_list(
 # Card endpoints
 @app.get(
     "/lists/{list_id}/cards",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def get_cards(
     list_id: str,
@@ -382,7 +382,7 @@ async def get_cards(
 
 @app.get(
     "/cards/{card_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def get_card(
     card_id: str,
@@ -401,7 +401,7 @@ async def get_card(
 
 @app.post(
     "/lists/{list_id}/cards",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def create_card(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -422,7 +422,7 @@ async def create_card(
 
 @app.put(
     "/cards/{card_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_card(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -444,7 +444,7 @@ async def update_card(
 
 @app.delete(
     "/cards/{card_id}",
-    responses={**notfound_resource_response, **common_error_responses},
+    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def delete_card(
     card_id: str,

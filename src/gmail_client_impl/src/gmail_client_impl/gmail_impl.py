@@ -135,7 +135,7 @@ class GmailClient(mail_client_api.Client):
         )
         return flow.run_local_server(port=0)  # type: ignore[no-any-return]
 
-    def _should_persist_token(self, interactive: bool, has_refresh_token: bool, token_path: str) -> bool:
+    def _should_persist_token(self, interactive: bool, has_refresh_token: bool, token_path: str) -> bool:  # noqa: FBT001
         """Decide whether to persist the token to disk.
 
         Extracted from __init__ to reduce cyclomatic complexity and to satisfy
@@ -146,7 +146,7 @@ class GmailClient(mail_client_api.Client):
 
         try:
             invoking_script = Path(sys.argv[0]).name
-        except Exception:
+        except Exception:  # noqa: BLE001
             invoking_script = ""
 
         return invoking_script != "main_ci.py"

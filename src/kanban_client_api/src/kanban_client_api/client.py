@@ -144,6 +144,22 @@ class KanbanClient(ABC):
 
         """
 
+    @abstractmethod
+    async def delete_card(self, card_id: str) -> bool:
+        """Delete a card.
+
+        Args:
+            card_id: The ID of the card to delete.
+
+        Returns:
+            bool: True if deletion was successful.
+
+        Raises:
+            KanbanNotFoundError: If the card doesn't exist.
+            KanbanAPIError: If the API request fails.
+
+        """
+
     # User operations
     @abstractmethod
     async def get_current_user(self) -> KanbanUser:
@@ -223,6 +239,22 @@ class KanbanClient(ABC):
 
         Returns:
             KanbanBoard: The updated board.
+
+        Raises:
+            KanbanNotFoundError: If the board doesn't exist.
+            KanbanAPIError: If the API request fails.
+
+        """
+
+    @abstractmethod
+    async def delete_board(self, board_id: str) -> bool:
+        """Delete a board.
+
+        Args:
+            board_id: The ID of the board to delete.
+
+        Returns:
+            bool: True if deletion was successful.
 
         Raises:
             KanbanNotFoundError: If the board doesn't exist.
