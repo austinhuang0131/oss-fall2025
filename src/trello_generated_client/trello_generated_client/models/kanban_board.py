@@ -10,12 +10,12 @@ from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="TrelloBoard")
+T = TypeVar("T", bound="KanbanBoard")
 
 
 @_attrs_define
-class TrelloBoard:
-    """Represents a Trello board.
+class KanbanBoard:
+    """Represents a Kanban board.
 
     Attributes:
         id (str):
@@ -124,7 +124,7 @@ class TrelloBoard:
 
         created_at = _parse_created_at(d.pop("created_at", UNSET))
 
-        trello_board = cls(
+        kanban_board = cls(
             id=id,
             name=name,
             description=description,
@@ -133,8 +133,8 @@ class TrelloBoard:
             created_at=created_at,
         )
 
-        trello_board.additional_properties = d
-        return trello_board
+        kanban_board.additional_properties = d
+        return kanban_board
 
     @property
     def additional_keys(self) -> list[str]:

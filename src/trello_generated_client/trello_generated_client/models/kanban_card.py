@@ -10,12 +10,12 @@ from dateutil.parser import isoparse
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="TrelloCard")
+T = TypeVar("T", bound="KanbanCard")
 
 
 @_attrs_define
-class TrelloCard:
-    """Represents a Trello card within a list.
+class KanbanCard:
+    """Represents a Kanban card within a list.
 
     Attributes:
         id (str):
@@ -175,7 +175,7 @@ class TrelloCard:
 
         created_at = _parse_created_at(d.pop("created_at", UNSET))
 
-        trello_card = cls(
+        kanban_card = cls(
             id=id,
             name=name,
             list_id=list_id,
@@ -188,8 +188,8 @@ class TrelloCard:
             created_at=created_at,
         )
 
-        trello_card.additional_properties = d
-        return trello_card
+        kanban_card.additional_properties = d
+        return kanban_card
 
     @property
     def additional_keys(self) -> list[str]:

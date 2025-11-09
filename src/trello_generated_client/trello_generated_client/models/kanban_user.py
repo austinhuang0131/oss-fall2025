@@ -8,12 +8,12 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="TrelloUser")
+T = TypeVar("T", bound="KanbanUser")
 
 
 @_attrs_define
-class TrelloUser:
-    """Represents a Trello user.
+class KanbanUser:
+    """Represents a Kanban user.
 
     Attributes:
         id (str):
@@ -85,15 +85,15 @@ class TrelloUser:
 
         email = _parse_email(d.pop("email", UNSET))
 
-        trello_user = cls(
+        kanban_user = cls(
             id=id,
             username=username,
             full_name=full_name,
             email=email,
         )
 
-        trello_user.additional_properties = d
-        return trello_user
+        kanban_user.additional_properties = d
+        return kanban_user
 
     @property
     def additional_keys(self) -> list[str]:

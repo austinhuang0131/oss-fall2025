@@ -19,6 +19,11 @@ from kanban_client_api import (
 )
 from trello_client_impl import TrelloClientImpl, TrelloOAuthHandler
 
+from trello_client_service.responses import (
+    common_error_responses,
+    notfound_resource_response,
+)
+
 # Try to load .env file if python-dotenv is available
 try:
     from dotenv import load_dotenv
@@ -174,13 +179,16 @@ async def auth_callback(
         access_token = await oauth_handler.exchange_token(token)
         # Set token in cookie
         response.set_cookie(key="trello_token", value=access_token, httponly=True, secure=True)
-    except TrelloAuthenticationError as e:
+    except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
     return {"message": "Authentication successful", "token": access_token}
 
 
 # User endpoints
-@app.get("/users/me")
+@app.get(
+    "/users/me",
+    responses={**common_error_responses},
+)
 async def get_current_user(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
 ) -> KanbanUser:
@@ -194,7 +202,10 @@ async def get_current_user(
 
 
 # Board endpoints
-@app.get("/boards")
+@app.get(
+    "/boards",
+    responses={**common_error_responses},
+)
 async def get_boards(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
 ) -> list[KanbanBoard]:
@@ -207,7 +218,10 @@ async def get_boards(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.get("/boards/{board_id}")
+@app.get(
+    "/boards/{board_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def get_board(
     board_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -223,7 +237,10 @@ async def get_board(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.post("/boards")
+@app.post(
+    "/boards",
+    responses={**common_error_responses},
+)
 async def create_board(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
     name: str,
@@ -238,7 +255,10 @@ async def create_board(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.put("/boards/{board_id}")
+@app.put(
+    "/boards/{board_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def update_board(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
     board_id: str,
@@ -256,7 +276,10 @@ async def update_board(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.delete("/boards/{board_id}")
+@app.delete(
+    "/boards/{board_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def delete_board(
     board_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -275,7 +298,10 @@ async def delete_board(
 
 
 # List endpoints
-@app.get("/boards/{board_id}/lists")
+@app.get(
+    "/boards/{board_id}/lists",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def get_lists(
     board_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -291,7 +317,10 @@ async def get_lists(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.post("/boards/{board_id}/lists")
+@app.post(
+    "/boards/{board_id}/lists",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def create_list(
     board_id: str,
     name: str,
@@ -308,7 +337,10 @@ async def create_list(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.put("/lists/{list_id}")
+@app.put(
+    "/lists/{list_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def update_list(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
     list_id: str,
@@ -326,7 +358,10 @@ async def update_list(
 
 
 # Card endpoints
-@app.get("/lists/{list_id}/cards")
+@app.get(
+    "/lists/{list_id}/cards",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def get_cards(
     list_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -342,7 +377,10 @@ async def get_cards(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.get("/cards/{card_id}")
+@app.get(
+    "/cards/{card_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def get_card(
     card_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],
@@ -358,7 +396,10 @@ async def get_card(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.post("/lists/{list_id}/cards")
+@app.post(
+    "/lists/{list_id}/cards",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def create_card(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
     list_id: str,
@@ -376,7 +417,10 @@ async def create_card(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.put("/cards/{card_id}")
+@app.put(
+    "/cards/{card_id}",
+    responses={**notfound_resource_response, **common_error_responses},
+)
 async def update_card(
     client: Annotated[KanbanClient, Depends(get_trello_client)],
     card_id: str,
@@ -395,7 +439,10 @@ async def update_card(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@app.delete("/cards/{card_id}")
+@app.delete(
+    "/cards/{card_id}",
+    responses={**notfound_resource_response, **common_error_responses, 200: {"model": BooleanSuccessResponse}},
+)
 async def delete_card(
     card_id: str,
     client: Annotated[KanbanClient, Depends(get_trello_client)],

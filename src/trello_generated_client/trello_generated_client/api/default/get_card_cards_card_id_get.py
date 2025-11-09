@@ -5,8 +5,9 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.error_response import ErrorResponse
 from ...models.http_validation_error import HTTPValidationError
-from ...models.trello_card import TrelloCard
+from ...models.kanban_card import KanbanCard
 from ...types import Response
 
 
@@ -23,11 +24,26 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | TrelloCard | None:
+) -> ErrorResponse | HTTPValidationError | KanbanCard | None:
     if response.status_code == 200:
-        response_200 = TrelloCard.from_dict(response.json())
+        response_200 = KanbanCard.from_dict(response.json())
 
         return response_200
+
+    if response.status_code == 400:
+        response_400 = ErrorResponse.from_dict(response.json())
+
+        return response_400
+
+    if response.status_code == 401:
+        response_401 = ErrorResponse.from_dict(response.json())
+
+        return response_401
+
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
+
+        return response_404
 
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
@@ -42,7 +58,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | TrelloCard]:
+) -> Response[ErrorResponse | HTTPValidationError | KanbanCard]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -55,7 +71,7 @@ def sync_detailed(
     card_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[HTTPValidationError | TrelloCard]:
+) -> Response[ErrorResponse | HTTPValidationError | KanbanCard]:
     """Get Card
 
      Get a specific card by ID.
@@ -68,7 +84,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | TrelloCard]
+        Response[ErrorResponse | HTTPValidationError | KanbanCard]
     """
 
     kwargs = _get_kwargs(
@@ -86,7 +102,7 @@ def sync(
     card_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> HTTPValidationError | TrelloCard | None:
+) -> ErrorResponse | HTTPValidationError | KanbanCard | None:
     """Get Card
 
      Get a specific card by ID.
@@ -99,7 +115,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | TrelloCard
+        ErrorResponse | HTTPValidationError | KanbanCard
     """
 
     return sync_detailed(
@@ -112,7 +128,7 @@ async def asyncio_detailed(
     card_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[HTTPValidationError | TrelloCard]:
+) -> Response[ErrorResponse | HTTPValidationError | KanbanCard]:
     """Get Card
 
      Get a specific card by ID.
@@ -125,7 +141,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | TrelloCard]
+        Response[ErrorResponse | HTTPValidationError | KanbanCard]
     """
 
     kwargs = _get_kwargs(
@@ -141,7 +157,7 @@ async def asyncio(
     card_id: str,
     *,
     client: AuthenticatedClient | Client,
-) -> HTTPValidationError | TrelloCard | None:
+) -> ErrorResponse | HTTPValidationError | KanbanCard | None:
     """Get Card
 
      Get a specific card by ID.
@@ -154,7 +170,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | TrelloCard
+        ErrorResponse | HTTPValidationError | KanbanCard
     """
 
     return (

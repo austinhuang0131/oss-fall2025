@@ -8,12 +8,12 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="TrelloList")
+T = TypeVar("T", bound="KanbanList")
 
 
 @_attrs_define
-class TrelloList:
-    """Represents a Trello list within a board.
+class KanbanList:
+    """Represents a Kanban list within a board.
 
     Attributes:
         id (str):
@@ -69,7 +69,7 @@ class TrelloList:
 
         closed = d.pop("closed", UNSET)
 
-        trello_list = cls(
+        kanban_list = cls(
             id=id,
             name=name,
             board_id=board_id,
@@ -77,8 +77,8 @@ class TrelloList:
             closed=closed,
         )
 
-        trello_list.additional_properties = d
-        return trello_list
+        kanban_list.additional_properties = d
+        return kanban_list
 
     @property
     def additional_keys(self) -> list[str]:

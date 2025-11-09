@@ -23,6 +23,8 @@ from trello_generated_client.api.default import (
     update_list_lists_list_id_put,
 )
 from trello_generated_client.client import Client as GeneratedTrelloClient
+from trello_generated_client.models import ErrorResponse
+from trello_generated_client.models.http_validation_error import HTTPValidationError
 
 
 class TrelloClientAdapter(KanbanClient):
@@ -32,17 +34,38 @@ class TrelloClientAdapter(KanbanClient):
         """Initialize the adapter with the generated Trello client."""
         self._client: GeneratedTrelloClient = GeneratedTrelloClient(base_url=base_url)
 
+    @staticmethod
+    def _handle_api_error(obj: object, msg: str) -> None:
+        """Convert generated client exceptions to KanbanClient exceptions."""
+        if obj is None or isinstance(obj, HTTPValidationError):
+            msg = f"{msg}: invalid response"
+            raise api_exceptions.KanbanAPIError(msg) from None
+        if isinstance(obj, ErrorResponse):
+            error: type[api_exceptions.KanbanError] = api_exceptions.KanbanAPIError
+            if obj.detail == "Authentication failed":
+                error = api_exceptions.KanbanAuthenticationError
+            elif obj.detail == "Resource not found":
+                error = api_exceptions.KanbanNotFoundError
+            msg = f"{msg}: {obj.detail}"
+            raise error(msg) from None
+
+    def _return_success(self, obj: object) -> bool:
+        """Return the object if it matches the expected return type, else raise an error."""
+        success = getattr(obj, "success", False)
+        if isinstance(success, bool):
+            return success
+        return False
+
     async def get_current_user(self) -> KanbanUser:
         """Get the current authenticated user."""
         user = await get_current_user_users_me_get.asyncio(client=self._client)
-        if user is None or hasattr(user, "detail"):
-            msg = "Failed to authenticate user."
-            raise api_exceptions.KanbanAuthenticationError(msg)
+        self._handle_api_error(user, "Failed to get current user")
         return KanbanUser.from_generated(user)
 
     async def get_boards(self) -> list[KanbanBoard]:
         """Get all boards accessible to the current user."""
         boards = await get_boards_boards_get.asyncio(client=self._client)
+        self._handle_api_error(boards, "Failed to fetch boards")
         if not isinstance(boards, list):
             msg = "API did not return a list of boards."
             raise api_exceptions.KanbanAPIError(msg)
@@ -51,20 +74,13 @@ class TrelloClientAdapter(KanbanClient):
     async def get_board(self, board_id: str) -> KanbanBoard:
         """Get a specific board by ID."""
         board = await get_board_boards_board_id_get.asyncio(client=self._client, board_id=board_id)
-        if board is None:
-            msg = f"Board {board_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(board, "detail"):
-            msg = f"Failed to fetch board {board_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(board, f"Failed to fetch board {board_id}")
         return KanbanBoard.from_generated(board)
 
     async def create_board(self, name: str, description: str | None = None) -> KanbanBoard:
         """Create a new board."""
         board = await create_board_boards_post.asyncio(client=self._client, name=name, description=description)
-        if board is None or hasattr(board, "detail"):
-            msg = "Failed to create board."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(board, "Failed to create board")
         return KanbanBoard.from_generated(board)
 
     async def update_board(
@@ -80,28 +96,20 @@ class TrelloClientAdapter(KanbanClient):
             name=name,
             description=description,
         )
-        if board is None:
-            msg = f"Board {board_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(board, "detail"):
-            msg = f"Failed to update board {board_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(board, f"Failed to update board {board_id}")
         return KanbanBoard.from_generated(board)
 
     async def delete_board(self, board_id: str) -> bool:
         """Delete a board."""
         result = await delete_board_boards_board_id_delete.asyncio(client=self._client, board_id=board_id)
-        if result is None:
-            msg = f"Board {board_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(result, "detail"):
-            msg = f"Failed to delete board {board_id}."
-            raise api_exceptions.KanbanAPIError(msg)
-        return bool(result)
+        self._handle_api_error(result, f"Failed to delete board {board_id}")
+        return self._return_success(result)
 
     async def get_lists(self, board_id: str) -> list[KanbanList]:
         """Get all lists in a board."""
         lists = await get_lists_boards_board_id_lists_get.asyncio(client=self._client, board_id=board_id)
+        self._handle_api_error(lists, f"Failed to fetch lists for board {board_id}")
+        # to reviewers: the list check is done outside to satisfy mypy type checking
         if not isinstance(lists, list):
             msg = f"API did not return a list for board {board_id}."
             raise api_exceptions.KanbanAPIError(msg)
@@ -110,25 +118,20 @@ class TrelloClientAdapter(KanbanClient):
     async def create_list(self, board_id: str, name: str) -> KanbanList:
         """Create a new list in a board."""
         kanban_list = await create_list_boards_board_id_lists_post.asyncio(client=self._client, board_id=board_id, name=name)
-        if kanban_list is None or hasattr(kanban_list, "detail"):
-            msg = f"Failed to create list in board {board_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(kanban_list, f"Failed to create list in board {board_id}")
         return KanbanList.from_generated(kanban_list)
 
     async def update_list(self, list_id: str, name: str | None = None) -> KanbanList:
         """Update an existing list."""
         kanban_list = await update_list_lists_list_id_put.asyncio(client=self._client, list_id=list_id, name=name)
-        if kanban_list is None:
-            msg = f"List {list_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(kanban_list, "detail"):
-            msg = f"Failed to update list {list_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(kanban_list, f"Failed to update list {list_id}")
         return KanbanList.from_generated(kanban_list)
 
     async def get_cards(self, list_id: str) -> list[KanbanCard]:
         """Get all cards in a list."""
         cards = await get_cards_lists_list_id_cards_get.asyncio(client=self._client, list_id=list_id)
+        self._handle_api_error(cards, f"Failed to fetch cards for list {list_id}")
+        # to reviewers: idem
         if not isinstance(cards, list):
             msg = f"API did not return a list for list {list_id}."
             raise api_exceptions.KanbanAPIError(msg)
@@ -137,12 +140,7 @@ class TrelloClientAdapter(KanbanClient):
     async def get_card(self, card_id: str) -> KanbanCard:
         """Get a specific card by ID."""
         card = await get_card_cards_card_id_get.asyncio(client=self._client, card_id=card_id)
-        if card is None:
-            msg = f"Card {card_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(card, "detail"):
-            msg = f"Failed to fetch card {card_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(card, f"Failed to fetch card {card_id}")
         return KanbanCard.from_generated(card)
 
     async def create_card(
@@ -158,9 +156,7 @@ class TrelloClientAdapter(KanbanClient):
             name=name,
             description=description,
         )
-        if card is None or hasattr(card, "detail"):
-            msg = f"Failed to create card in list {list_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(card, f"Failed to create card in list {list_id}")
         return KanbanCard.from_generated(card)
 
     async def update_card(
@@ -178,21 +174,11 @@ class TrelloClientAdapter(KanbanClient):
             description=description,
             list_id=list_id,
         )
-        if card is None:
-            msg = f"Card {card_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(card, "detail"):
-            msg = f"Failed to update card {card_id}."
-            raise api_exceptions.KanbanAPIError(msg)
+        self._handle_api_error(card, f"Failed to update card {card_id}")
         return KanbanCard.from_generated(card)
 
     async def delete_card(self, card_id: str) -> bool:
         """Delete a card."""
         result = await delete_card_cards_card_id_delete.asyncio(client=self._client, card_id=card_id)
-        if result is None:
-            msg = f"Card {card_id} not found."
-            raise api_exceptions.KanbanNotFoundError(msg)
-        if hasattr(result, "detail"):
-            msg = f"Failed to delete card {card_id}."
-            raise api_exceptions.KanbanAPIError(msg)
-        return bool(result)
+        self._handle_api_error(result, f"Failed to delete card {card_id}")
+        return self._return_success(result)

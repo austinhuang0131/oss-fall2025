@@ -5,7 +5,8 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.trello_user import TrelloUser
+from ...models.error_response import ErrorResponse
+from ...models.kanban_user import KanbanUser
 from ...types import Response
 
 
@@ -18,11 +19,23 @@ def _get_kwargs() -> dict[str, Any]:
     return _kwargs
 
 
-def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> TrelloUser | None:
+def _parse_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> ErrorResponse | KanbanUser | None:
     if response.status_code == 200:
-        response_200 = TrelloUser.from_dict(response.json())
+        response_200 = KanbanUser.from_dict(response.json())
 
         return response_200
+
+    if response.status_code == 400:
+        response_400 = ErrorResponse.from_dict(response.json())
+
+        return response_400
+
+    if response.status_code == 401:
+        response_401 = ErrorResponse.from_dict(response.json())
+
+        return response_401
 
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
@@ -30,7 +43,9 @@ def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Res
         return None
 
 
-def _build_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Response[TrelloUser]:
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[ErrorResponse | KanbanUser]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -42,7 +57,7 @@ def _build_response(*, client: AuthenticatedClient | Client, response: httpx.Res
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[TrelloUser]:
+) -> Response[ErrorResponse | KanbanUser]:
     """Get Current User
 
      Get current authenticated user.
@@ -52,7 +67,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[TrelloUser]
+        Response[ErrorResponse | KanbanUser]
     """
 
     kwargs = _get_kwargs()
@@ -67,7 +82,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> TrelloUser | None:
+) -> ErrorResponse | KanbanUser | None:
     """Get Current User
 
      Get current authenticated user.
@@ -77,7 +92,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        TrelloUser
+        ErrorResponse | KanbanUser
     """
 
     return sync_detailed(
@@ -88,7 +103,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[TrelloUser]:
+) -> Response[ErrorResponse | KanbanUser]:
     """Get Current User
 
      Get current authenticated user.
@@ -98,7 +113,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[TrelloUser]
+        Response[ErrorResponse | KanbanUser]
     """
 
     kwargs = _get_kwargs()
@@ -111,7 +126,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> TrelloUser | None:
+) -> ErrorResponse | KanbanUser | None:
     """Get Current User
 
      Get current authenticated user.
@@ -121,7 +136,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        TrelloUser
+        ErrorResponse | KanbanUser
     """
 
     return (
