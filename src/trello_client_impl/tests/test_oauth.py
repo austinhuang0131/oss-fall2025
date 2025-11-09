@@ -1,10 +1,8 @@
 """Tests for TrelloOAuthHandler."""
 
-import os
-
 import pytest
+from kanban_client_api.exceptions import KanbanAuthenticationError
 
-from kanban_client_api import KanbanAuthenticationError
 from trello_client_impl.oauth import TrelloOAuthHandler
 
 
@@ -32,20 +30,20 @@ class TestTrelloOAuthHandler:
         class DummyResp:
             status = 200
 
-            async def __aenter__(self) -> "DummyResp":  # noqa: D401 - tiny helper
+            async def __aenter__(self) -> "DummyResp":
                 return self
 
-            async def __aexit__(self, *args: object, **kwargs: object) -> None:  # noqa: D401 - tiny helper
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:
                 return None
 
         class DummySession:
-            async def __aenter__(self) -> "DummySession":  # noqa: D401
+            async def __aenter__(self) -> "DummySession":
                 return self
 
-            async def __aexit__(self, *args: object, **kwargs: object) -> None:  # noqa: D401
+            async def __aexit__(self, *args: object, **kwargs: object) -> None:
                 return None
 
-            def get(self, *_args: object, **_kwargs: object) -> DummyResp:  # noqa: D401
+            def get(self, *_args: object, **_kwargs: object) -> DummyResp:
                 return DummyResp()
 
         import trello_client_impl.oauth as oauth_mod
@@ -89,15 +87,15 @@ class TestTrelloOAuthHandler:
         for key in ("TRELLO_API_KEY", "TRELLO_API_SECRET", "REDIRECT_URI"):
             monkeypatch.delenv(key, raising=False)
         # Missing vars -> ValueError
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="TRELLO_API_KEY environment variable is required"):
             TrelloOAuthHandler.from_env()
 
         monkeypatch.setenv("TRELLO_API_KEY", "k")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="TRELLO_API_SECRET environment variable is required"):
             TrelloOAuthHandler.from_env()
 
         monkeypatch.setenv("TRELLO_API_SECRET", "s")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="REDIRECT_URI environment variable is required"):
             TrelloOAuthHandler.from_env()
 
         monkeypatch.setenv("REDIRECT_URI", "http://localhost/callback")

@@ -2,104 +2,146 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from datetime import datetime  # noqa: TC003
 
-from pydantic import BaseModel
+
+class KanbanBoard(ABC):
+    """Abstract base class for Kanban board."""
+
+    @property
+    @abstractmethod
+    def id(self) -> str:
+        """The unique identifier for the board."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """The name of the board."""
+
+    @property
+    @abstractmethod
+    def description(self) -> str | None:
+        """The description of the board."""
+
+    @property
+    @abstractmethod
+    def closed(self) -> bool:
+        """Whether the board is closed."""
+
+    @property
+    @abstractmethod
+    def url(self) -> str | None:
+        """The URL of the board."""
+
+    @property
+    @abstractmethod
+    def created_at(self) -> datetime | None:
+        """The creation time of the board."""
 
 
-class KanbanBoard(BaseModel):
-    """Represents a Kanban board."""
+class KanbanList(ABC):
+    """Abstract base class for Kanban list within a board."""
 
-    @classmethod
-    def from_generated(cls, generated_board: object) -> KanbanBoard:
-        """Convert from generated client board model to KanbanBoard."""
-        return cls(
-            id=getattr(generated_board, "id", ""),
-            name=getattr(generated_board, "name", ""),
-            description=getattr(generated_board, "description", None),
-            closed=getattr(generated_board, "closed", False),
-            url=getattr(generated_board, "url", None),
-            created_at=getattr(generated_board, "created_at", None),
-        )
-    """Represents a Kanban board."""
+    @property
+    @abstractmethod
+    def id(self) -> str:
+        """The unique identifier for the list."""
 
-    id: str
-    name: str
-    description: str | None = None
-    closed: bool = False
-    url: str | None = None
-    created_at: datetime | None = None
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """The name of the list."""
 
+    @property
+    @abstractmethod
+    def board_id(self) -> str:
+        """The ID of the board this list belongs to."""
 
-class KanbanList(BaseModel):
-    """Represents a Kanban list within a board."""
+    @property
+    @abstractmethod
+    def position(self) -> float:
+        """The position of the list in the board."""
 
-    @classmethod
-    def from_generated(cls, generated_list: object) -> KanbanList:
-        """Convert from generated client list model to KanbanList."""
-        return cls(
-            id=getattr(generated_list, "id", ""),
-            name=getattr(generated_list, "name", ""),
-            board_id=getattr(generated_list, "board_id", ""),
-            position=getattr(generated_list, "position", 0.0),
-            closed=getattr(generated_list, "closed", False),
-        )
-    """Represents a Kanban list within a board."""
-
-    id: str
-    name: str
-    board_id: str
-    position: float
-    closed: bool = False
+    @property
+    @abstractmethod
+    def closed(self) -> bool:
+        """Whether the list is closed."""
 
 
-class KanbanCard(BaseModel):
-    """Represents a Kanban card within a list."""
+class KanbanCard(ABC):
+    """Abstract base class for Kanban card within a list."""
 
-    @classmethod
-    def from_generated(cls, generated_card: object) -> KanbanCard:
-        """Convert from generated client card model to KanbanCard."""
-        return cls(
-            id=getattr(generated_card, "id", ""),
-            name=getattr(generated_card, "name", ""),
-            list_id=getattr(generated_card, "list_id", ""),
-            board_id=getattr(generated_card, "board_id", ""),
-            description=getattr(generated_card, "description", None),
-            position=getattr(generated_card, "position", 0.0),
-            closed=getattr(generated_card, "closed", False),
-            due_date=getattr(generated_card, "due_date", None),
-            url=getattr(generated_card, "url", None),
-            created_at=getattr(generated_card, "created_at", None),
-        )
-    """Represents a Kanban card within a list."""
+    @property
+    @abstractmethod
+    def id(self) -> str:
+        """The unique identifier for the card."""
 
-    id: str
-    name: str
-    list_id: str
-    board_id: str
-    description: str | None = None
-    position: float = 0.0
-    closed: bool = False
-    due_date: datetime | None = None
-    url: str | None = None
-    created_at: datetime | None = None
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """The name of the card."""
+
+    @property
+    @abstractmethod
+    def list_id(self) -> str:
+        """The ID of the list this card belongs to."""
+
+    @property
+    @abstractmethod
+    def board_id(self) -> str:
+        """The ID of the board this card belongs to."""
+
+    @property
+    @abstractmethod
+    def description(self) -> str | None:
+        """The description of the card."""
+
+    @property
+    @abstractmethod
+    def position(self) -> float:
+        """The position of the card in the list."""
+
+    @property
+    @abstractmethod
+    def closed(self) -> bool:
+        """Whether the card is closed."""
+
+    @property
+    @abstractmethod
+    def due_date(self) -> datetime | None:
+        """The due date of the card."""
+
+    @property
+    @abstractmethod
+    def url(self) -> str | None:
+        """The URL of the card."""
+
+    @property
+    @abstractmethod
+    def created_at(self) -> datetime | None:
+        """The creation time of the card."""
 
 
-class KanbanUser(BaseModel):
-    """Represents a Kanban user."""
+class KanbanUser(ABC):
+    """Abstract base class for Kanban user."""
 
-    @classmethod
-    def from_generated(cls, generated_user: object) -> KanbanUser:
-        """Convert from generated client user model to KanbanUser."""
-        return cls(
-            id=getattr(generated_user, "id", ""),
-            username=getattr(generated_user, "username", ""),
-            full_name=getattr(generated_user, "full_name", None),
-            email=getattr(generated_user, "email", None),
-        )
-    """Represents a Kanban user."""
+    @property
+    @abstractmethod
+    def id(self) -> str:
+        """The unique identifier for the user."""
 
-    id: str
-    username: str
-    full_name: str | None = None
-    email: str | None = None
+    @property
+    @abstractmethod
+    def username(self) -> str:
+        """The username of the user."""
+
+    @property
+    @abstractmethod
+    def full_name(self) -> str | None:
+        """The full name of the user."""
+
+    @property
+    @abstractmethod
+    def email(self) -> str | None:
+        """The email address of the user."""

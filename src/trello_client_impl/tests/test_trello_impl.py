@@ -4,9 +4,10 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from kanban_client_api import KanbanBoard, KanbanUser
+from kanban_client_api.models import KanbanBoard, KanbanUser
 
-from trello_client_impl import TrelloClientImpl, TrelloOAuthHandler
+from trello_client_impl.oauth import TrelloOAuthHandler
+from trello_client_impl.trello_impl import TrelloClientImpl
 
 
 class TestTrelloClientImpl:
@@ -37,7 +38,7 @@ class TestTrelloClientImpl:
     async def test_get_current_user_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful user retrieval."""
         # Mock the _make_request method
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return {
                 "id": "user123",
                 "username": "testuser",
@@ -57,7 +58,7 @@ class TestTrelloClientImpl:
 
     async def test_get_boards_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test successful board retrieval."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return [
                 {
                     "id": "board123",
@@ -83,7 +84,7 @@ class TestTrelloClientImpl:
 
     async def test_get_board_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test fetching a single board."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return {
                 "id": "b1",
                 "name": "Board 1",
@@ -98,8 +99,9 @@ class TestTrelloClientImpl:
 
     async def test_create_board_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test creating a board."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             assert method == "POST"
+            assert params is not None
             return {
                 "id": "b2",
                 "name": params["name"],
@@ -114,8 +116,9 @@ class TestTrelloClientImpl:
 
     async def test_update_board_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test updating a board."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             assert method == "PUT"
+            assert params is not None
             return {
                 "id": "b2",
                 "name": params.get("name", "Board 2"),
@@ -129,7 +132,7 @@ class TestTrelloClientImpl:
 
     async def test_delete_board_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test deleting a board."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             assert method == "DELETE"
             return {}
         monkeypatch.setattr(client, "_make_request", mock_make_request)
@@ -138,7 +141,7 @@ class TestTrelloClientImpl:
     async def test_lists_and_cards_crud(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Cover list and card CRUD paths with mocked requests."""
         # get_lists
-        async def mock_get_lists(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_get_lists(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return [
                 {"id": "l1", "name": "List1", "pos": 1.0, "closed": False},
             ]
@@ -147,21 +150,23 @@ class TestTrelloClientImpl:
         assert lists[0].id == "l1"
 
         # create_list
-        async def mock_create_list(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_create_list(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
+            assert params is not None
             return {"id": "l2", "name": params["name"], "pos": 1.0, "closed": False}
         monkeypatch.setattr(client, "_make_request", mock_create_list)
         new_list = await client.create_list("b1", "NewList")
         assert new_list.name == "NewList"
 
         # update_list
-        async def mock_update_list(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_update_list(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
+            assert params is not None
             return {"id": "l2", "name": params.get("name", "List2"), "idBoard": "b1", "pos": 1.0, "closed": False}
         monkeypatch.setattr(client, "_make_request", mock_update_list)
         updated_list = await client.update_list("l2", name="RenamedList")
         assert updated_list.name == "RenamedList"
 
         # get_cards
-        async def mock_get_cards(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_get_cards(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return [
                 {"id": "c1", "name": "Card1", "idBoard": "b1", "pos": 0.0, "closed": False, "url": None},
             ]
@@ -170,14 +175,15 @@ class TestTrelloClientImpl:
         assert cards[0].id == "c1"
 
         # get_card
-        async def mock_get_card(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_get_card(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return {"id": "c1", "name": "Card1", "idList": "l1", "idBoard": "b1", "pos": 0.0, "closed": False, "url": None, "desc": None}
         monkeypatch.setattr(client, "_make_request", mock_get_card)
         card = await client.get_card("c1")
         assert card.id == "c1"
 
         # create_card
-        async def mock_create_card(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_create_card(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
+            assert params is not None
             return {"id": "c2", "name": params["name"], "idBoard": "b1", "pos": 0.0, "closed": False, "url": None, "desc": params.get("desc")}
         monkeypatch.setattr(client, "_make_request", mock_create_card)
         new_card = await client.create_card("l1", "Card2", description="D")
@@ -185,21 +191,22 @@ class TestTrelloClientImpl:
         assert new_card.description == "D"
 
         # update_card
-        async def mock_update_card(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_update_card(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
+            assert params is not None
             return {"id": "c2", "name": params.get("name", "Card2"), "idList": params.get("idList", "l1"), "idBoard": "b1", "pos": 0.0, "closed": False, "url": None, "desc": params.get("desc")}
         monkeypatch.setattr(client, "_make_request", mock_update_card)
         updated_card = await client.update_card("c2", name="Renamed", description=None)
         assert updated_card.name == "Renamed"
 
         # delete_card
-        async def mock_delete_card(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_delete_card(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             return {}
         monkeypatch.setattr(client, "_make_request", mock_delete_card)
         assert await client.delete_card("c2") is True
 
     async def test_update_board_with_description(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure description parameter is forwarded when provided."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             assert params is not None
             assert params.get("desc") == "D2"
             return {"id": "b2", "name": params.get("name", "B"), "desc": params.get("desc"), "closed": False, "url": "u"}
@@ -209,7 +216,7 @@ class TestTrelloClientImpl:
 
     async def test_update_card_with_description_and_list(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure update_card forwards description and list_id when provided."""
-        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None, json_data: dict | None=None) -> Any:
+        async def mock_make_request(method: str, endpoint: str, params: dict[str, str] | None=None) -> Any:
             assert params is not None
             assert params.get("desc") == "dd"
             assert params.get("idList") == "l9"

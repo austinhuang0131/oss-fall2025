@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
-
-from kanban_client_api import (
+from kanban_client_api.client import KanbanClient
+from kanban_client_api.exceptions import (
     KanbanAPIError,
     KanbanAuthenticationError,
-    KanbanBoard,
-    KanbanCard,
-    KanbanClient,
-    KanbanList,
     KanbanNotFoundError,
-    KanbanUser,
 )
 
+from .models import TrelloBoard, TrelloCard, TrelloList, TrelloUser
 from .oauth import TrelloOAuthHandler
+
+if TYPE_CHECKING:
+    from kanban_client_api.models import KanbanBoard, KanbanCard, KanbanList
 
 
 class TrelloClientImpl(KanbanClient):
@@ -59,15 +58,13 @@ class TrelloClientImpl(KanbanClient):
         method: str,
         endpoint: str,
         params: dict[str, str] | None = None,
-        json_data: dict | None = None,
-    ) -> dict[str, Any] | list[Any]:
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """Make authenticated request to Trello API.
 
         Args:
             method: HTTP method
             endpoint: API endpoint
             params: Query parameters
-            json_data: JSON request body
 
         Returns:
             dict: API response data
@@ -91,33 +88,30 @@ class TrelloClientImpl(KanbanClient):
             "token": self.token,
         })
 
-        async with aiohttp.ClientSession() as session:
-            request_kwargs = {}
-            if params:
-                request_kwargs["params"] = params
-            if json_data:
-                request_kwargs["json"] = json_data
+        async with aiohttp.ClientSession() as session, session.request(method, url, params=params) as response:
+            if response.status == HTTPStatus.UNAUTHORIZED:
+                msg = "Authentication failed"
+                raise KanbanAuthenticationError(msg)
+            if response.status == HTTPStatus.NOT_FOUND:
+                msg = "Resource not found"
+                raise KanbanNotFoundError(msg)
+            if response.status >= HTTPStatus.BAD_REQUEST:
+                text = await response.text()
+                msg = f"API error: {text}"
+                raise KanbanAPIError(msg, response.status)
 
-            async with session.request(method, url, **request_kwargs) as response:
-                if response.status == HTTPStatus.UNAUTHORIZED:
-                    msg = "Authentication failed"
-                    raise KanbanAuthenticationError(msg)
-                if response.status == HTTPStatus.NOT_FOUND:
-                    msg = "Resource not found"
-                    raise KanbanNotFoundError(msg)
-                if response.status >= HTTPStatus.BAD_REQUEST:
-                    text = await response.text()
-                    msg = f"API error: {text}"
-                    raise KanbanAPIError(msg, response.status)
-
-                return await response.json()
+            return await response.json() # type: ignore[no-any-return]
 
     # User operations
-    async def get_current_user(self) -> KanbanUser:
+    async def get_current_user(self) -> TrelloUser:
         """Get the current authenticated user."""
         data = await self._make_request("GET", "/members/me")
-        return KanbanUser(
-            id=data["id"],
+        if (not isinstance(data, dict)):
+            msg = "API did not return a dict for current user."
+            raise KanbanAPIError(msg)
+
+        return TrelloUser(
+            user_id=data["id"],
             username=data["username"],
             full_name=data.get("fullName"),
             email=data.get("email"),
@@ -129,9 +123,12 @@ class TrelloClientImpl(KanbanClient):
         data = await self._make_request("GET", "/members/me/boards")
 
         boards = []
+        if (not isinstance(data, list)):
+            msg = "API did not return a list of boards."
+            raise KanbanAPIError(msg)
         for board_data in data:
-            board = KanbanBoard(
-                id=board_data["id"],
+            board: KanbanBoard = TrelloBoard(
+                board_id=board_data["id"],
                 name=board_data["name"],
                 description=board_data.get("desc"),
                 closed=board_data.get("closed", False),
@@ -141,12 +138,15 @@ class TrelloClientImpl(KanbanClient):
 
         return boards
 
-    async def get_board(self, board_id: str) -> KanbanBoard:
+    async def get_board(self, board_id: str) -> TrelloBoard:
         """Get a specific board by ID."""
         data = await self._make_request("GET", f"/boards/{board_id}")
+        if (not isinstance(data, dict)):
+            msg = f"API did not return a dict for board {board_id}."
+            raise KanbanAPIError(msg)
 
-        return KanbanBoard(
-            id=data["id"],
+        return TrelloBoard(
+            board_id=data["id"],
             name=data["name"],
             description=data.get("desc"),
             closed=data.get("closed", False),
@@ -157,16 +157,19 @@ class TrelloClientImpl(KanbanClient):
         self,
         name: str,
         description: str | None = None,
-    ) -> KanbanBoard:
+    ) -> TrelloBoard:
         """Create a new board."""
         params = {"name": name}
         if description:
             params["desc"] = description
 
         data = await self._make_request("POST", "/boards", params=params)
+        if (not isinstance(data, dict)):
+            msg = "API did not return a dict for new board."
+            raise KanbanAPIError(msg)
 
-        return KanbanBoard(
-            id=data["id"],
+        return TrelloBoard(
+            board_id=data["id"],
             name=data["name"],
             description=data.get("desc"),
             closed=data.get("closed", False),
@@ -178,7 +181,7 @@ class TrelloClientImpl(KanbanClient):
         board_id: str,
         name: str | None = None,
         description: str | None = None,
-    ) -> KanbanBoard:
+    ) -> TrelloBoard:
         """Update an existing board."""
         params = {}
         if name:
@@ -187,9 +190,12 @@ class TrelloClientImpl(KanbanClient):
             params["desc"] = description
 
         data = await self._make_request("PUT", f"/boards/{board_id}", params=params)
+        if (not isinstance(data, dict)):
+            msg = f"API did not return a dict for board {board_id}."
+            raise KanbanAPIError(msg)
 
-        return KanbanBoard(
-            id=data["id"],
+        return TrelloBoard(
+            board_id=data["id"],
             name=data["name"],
             description=data.get("desc"),
             closed=data.get("closed", False),
@@ -207,25 +213,31 @@ class TrelloClientImpl(KanbanClient):
         data = await self._make_request("GET", f"/boards/{board_id}/lists")
 
         lists = []
+        if (not isinstance(data, list)):
+            msg = f"API did not return a dict for lists of board {board_id}."
+            raise KanbanAPIError(msg)
         for list_data in data:
-            kanban_list = KanbanList(
-                id=list_data["id"],
+            trello_list: KanbanList = TrelloList(
+                list_id=list_data["id"],
                 name=list_data["name"],
                 board_id=board_id,
                 position=list_data.get("pos", 0.0),
                 closed=list_data.get("closed", False),
             )
-            lists.append(kanban_list)
+            lists.append(trello_list)
 
         return lists
 
-    async def create_list(self, board_id: str, name: str) -> KanbanList:
+    async def create_list(self, board_id: str, name: str) -> TrelloList:
         """Create a new list in a board."""
         params = {"name": name, "idBoard": board_id}
         data = await self._make_request("POST", "/lists", params=params)
+        if (not isinstance(data, dict)):
+            msg = "API did not return a dict for the new list."
+            raise KanbanAPIError(msg)
 
-        return KanbanList(
-            id=data["id"],
+        return TrelloList(
+            list_id=data["id"],
             name=data["name"],
             board_id=board_id,
             position=data.get("pos", 0.0),
@@ -236,16 +248,19 @@ class TrelloClientImpl(KanbanClient):
         self,
         list_id: str,
         name: str | None = None,
-    ) -> KanbanList:
+    ) -> TrelloList:
         """Update an existing list."""
         params = {}
         if name:
             params["name"] = name
 
         data = await self._make_request("PUT", f"/lists/{list_id}", params=params)
+        if (not isinstance(data, dict)):
+            msg = f"API did not return a dict for list {list_id}."
+            raise KanbanAPIError(msg)
 
-        return KanbanList(
-            id=data["id"],
+        return TrelloList(
+            list_id=data["id"],
             name=data["name"],
             board_id=data["idBoard"],
             position=data.get("pos", 0.0),
@@ -258,9 +273,13 @@ class TrelloClientImpl(KanbanClient):
         data = await self._make_request("GET", f"/lists/{list_id}/cards")
 
         cards = []
+        if (not isinstance(data, list)):
+            msg = f"API did not return a list for cards of list {list_id}."
+            raise KanbanAPIError(msg)
+
         for card_data in data:
-            card = KanbanCard(
-                id=card_data["id"],
+            card: KanbanCard = TrelloCard(
+                card_id=card_data["id"],
                 name=card_data["name"],
                 list_id=list_id,
                 board_id=card_data["idBoard"],
@@ -273,12 +292,15 @@ class TrelloClientImpl(KanbanClient):
 
         return cards
 
-    async def get_card(self, card_id: str) -> KanbanCard:
+    async def get_card(self, card_id: str) -> TrelloCard:
         """Get a specific card by ID."""
         data = await self._make_request("GET", f"/cards/{card_id}")
+        if (not isinstance(data, dict)):
+            msg = f"API did not return a dict for card {card_id}."
+            raise KanbanAPIError(msg)
 
-        return KanbanCard(
-            id=data["id"],
+        return TrelloCard(
+            card_id=data["id"],
             name=data["name"],
             list_id=data["idList"],
             board_id=data["idBoard"],
@@ -293,16 +315,19 @@ class TrelloClientImpl(KanbanClient):
         list_id: str,
         name: str,
         description: str | None = None,
-    ) -> KanbanCard:
+    ) -> TrelloCard:
         """Create a new card in a list."""
         params = {"name": name, "idList": list_id}
         if description:
             params["desc"] = description
 
         data = await self._make_request("POST", "/cards", params=params)
+        if (not isinstance(data, dict)):
+            msg = "API did not return a dict for the new card."
+            raise KanbanAPIError(msg)
 
-        return KanbanCard(
-            id=data["id"],
+        return TrelloCard(
+            card_id=data["id"],
             name=data["name"],
             list_id=list_id,
             board_id=data["idBoard"],
@@ -318,7 +343,7 @@ class TrelloClientImpl(KanbanClient):
         name: str | None = None,
         description: str | None = None,
         list_id: str | None = None,
-    ) -> KanbanCard:
+    ) -> TrelloCard:
         """Update an existing card."""
         params = {}
         if name:
@@ -329,9 +354,12 @@ class TrelloClientImpl(KanbanClient):
             params["idList"] = list_id
 
         data = await self._make_request("PUT", f"/cards/{card_id}", params=params)
+        if (not isinstance(data, dict)):
+            msg = f"API did not return a dict for card {card_id}."
+            raise KanbanAPIError(msg)
 
-        return KanbanCard(
-            id=data["id"],
+        return TrelloCard(
+            card_id=data["id"],
             name=data["name"],
             list_id=data["idList"],
             board_id=data["idBoard"],

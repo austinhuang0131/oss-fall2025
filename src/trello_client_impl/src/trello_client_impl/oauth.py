@@ -7,7 +7,7 @@ import urllib.parse
 from http import HTTPStatus
 
 import aiohttp
-from kanban_client_api import KanbanAuthenticationError
+from kanban_client_api.exceptions import KanbanAuthenticationError
 
 
 class TrelloOAuthHandler:
