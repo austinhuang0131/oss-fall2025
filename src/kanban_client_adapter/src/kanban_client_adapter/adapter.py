@@ -1,12 +1,13 @@
 
-"""Adapter for KanbanClient using trello_generated_client."""
+"""Adapter for KanbanClient using kanban_generated_client."""
 
 from typing import TYPE_CHECKING, cast
 
 from kanban_client_api import exceptions as api_exceptions
 from kanban_client_api.client import KanbanClient
 from kanban_client_api.models import KanbanBoard, KanbanCard, KanbanList, KanbanUser
-from trello_generated_client.api.default import (
+from kanban_generated_client import Client as GeneratedTrelloClient
+from kanban_generated_client.api.default import (
     create_board_boards_post,
     create_card_lists_list_id_cards_post,
     create_list_boards_board_id_lists_post,
@@ -22,18 +23,17 @@ from trello_generated_client.api.default import (
     update_card_cards_card_id_put,
     update_list_lists_list_id_put,
 )
-from trello_generated_client.client import Client as GeneratedTrelloClient
-from trello_generated_client.models.error_response import ErrorResponse
-from trello_generated_client.models.http_validation_error import HTTPValidationError
+from kanban_generated_client.models.error_response import ErrorResponse
+from kanban_generated_client.models.http_validation_error import HTTPValidationError
 
 from .models import AdapterBoard, AdapterCard, AdapterList, AdapterUser
 
 if TYPE_CHECKING:
-    import trello_generated_client.models
+    import kanban_generated_client.models
 
 
 class KanbanClientAdapter(KanbanClient):
-    """Adapter implementation of KanbanClient using trello_generated_client."""
+    """Adapter implementation of KanbanClient using kanban_generatd_client."""
 
     def __init__(self, base_url: str = "http://localhost:8000") -> None:
         """Initialize the adapter with the generated Trello client."""
@@ -65,7 +65,7 @@ class KanbanClientAdapter(KanbanClient):
         """Get the current authenticated user."""
         user = await get_current_user_users_me_get.asyncio(client=self._client)
         self._handle_api_error(user, "Failed to get current user")
-        user = cast("trello_generated_client.models.KanbanUser", user)
+        user = cast("kanban_generated_client.models.KanbanUser", user)
         return AdapterUser(
             user_id=user.id,
             username=user.username,
@@ -93,7 +93,7 @@ class KanbanClientAdapter(KanbanClient):
         """Get a specific board by ID."""
         board = await get_board_boards_board_id_get.asyncio(client=self._client, board_id=board_id)
         self._handle_api_error(board, f"Failed to fetch board {board_id}")
-        board = cast("trello_generated_client.models.KanbanBoard", board)
+        board = cast("kanban_generated_client.models.KanbanBoard", board)
         return AdapterBoard(
             board_id=board.id,
             name=board.name,
@@ -107,7 +107,7 @@ class KanbanClientAdapter(KanbanClient):
         """Create a new board."""
         board = await create_board_boards_post.asyncio(client=self._client, name=name, description=description)
         self._handle_api_error(board, "Failed to create board")
-        board = cast("trello_generated_client.models.KanbanBoard", board)
+        board = cast("kanban_generated_client.models.KanbanBoard", board)
         return AdapterBoard(
             board_id=board.id,
             name=board.name,
@@ -131,7 +131,7 @@ class KanbanClientAdapter(KanbanClient):
             description=description,
         )
         self._handle_api_error(board, f"Failed to update board {board_id}")
-        board = cast("trello_generated_client.models.KanbanBoard", board)
+        board = cast("kanban_generated_client.models.KanbanBoard", board)
         return AdapterBoard(
             board_id=board.id,
             name=board.name,
@@ -167,7 +167,7 @@ class KanbanClientAdapter(KanbanClient):
         """Create a new list in a board."""
         kanban_list = await create_list_boards_board_id_lists_post.asyncio(client=self._client, board_id=board_id, name=name)
         self._handle_api_error(kanban_list, f"Failed to create list in board {board_id}")
-        kanban_list = cast("trello_generated_client.models.KanbanList", kanban_list)
+        kanban_list = cast("kanban_generated_client.models.KanbanList", kanban_list)
         return AdapterList(
             list_id=kanban_list.id,
             name=kanban_list.name,
@@ -180,7 +180,7 @@ class KanbanClientAdapter(KanbanClient):
         """Update an existing list."""
         kanban_list = await update_list_lists_list_id_put.asyncio(client=self._client, list_id=list_id, name=name)
         self._handle_api_error(kanban_list, f"Failed to update list {list_id}")
-        kanban_list = cast("trello_generated_client.models.KanbanList", kanban_list)
+        kanban_list = cast("kanban_generated_client.models.KanbanList", kanban_list)
         return AdapterList(
             list_id=kanban_list.id,
             name=kanban_list.name,
@@ -214,7 +214,7 @@ class KanbanClientAdapter(KanbanClient):
         """Get a specific card by ID."""
         card = await get_card_cards_card_id_get.asyncio(client=self._client, card_id=card_id)
         self._handle_api_error(card, f"Failed to fetch card {card_id}")
-        card = cast("trello_generated_client.models.KanbanCard", card)
+        card = cast("kanban_generated_client.models.KanbanCard", card)
         return AdapterCard(
             card_id=card.id,
             name=card.name,
@@ -242,7 +242,7 @@ class KanbanClientAdapter(KanbanClient):
             description=description,
         )
         self._handle_api_error(card, f"Failed to create card in list {list_id}")
-        card = cast("trello_generated_client.models.KanbanCard", card)
+        card = cast("kanban_generated_client.models.KanbanCard", card)
         return AdapterCard(
             card_id=card.id,
             name=card.name,
@@ -272,7 +272,7 @@ class KanbanClientAdapter(KanbanClient):
             list_id=list_id,
         )
         self._handle_api_error(card, f"Failed to update card {card_id}")
-        card = cast("trello_generated_client.models.KanbanCard", card)
+        card = cast("kanban_generated_client.models.KanbanCard", card)
         return AdapterCard(
             card_id=card.id,
             name=card.name,

@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from kanban_client_api import KanbanBoard, KanbanCard, KanbanList, KanbanUser
+from kanban_client_api.models import KanbanBoard, KanbanCard, KanbanList, KanbanUser
 
-from trello_client_service import app
+from kanban_client_service.main import app
 
 os.environ["TRELLO_API_KEY"] = "dummy_key"
 os.environ["TRELLO_API_SECRET"] = "dummy_secret"
@@ -43,7 +43,7 @@ def patch_oauth(monkeypatch: pytest.MonkeyPatch) -> None:
             assert token == "oauth_token"
             return MOCK_TOKEN
 
-    monkeypatch.setattr("trello_client_service.main.TrelloOAuthHandler", MockOAuthHandler)
+    monkeypatch.setattr("kanban_client_service.main.TrelloOAuthHandler", MockOAuthHandler)
 
 # Test /auth/login
 def test_auth_login() -> None:
@@ -70,7 +70,7 @@ def auth_client() -> TestClient:
     return client
 
 # Test /users/me
-@patch("trello_client_service.main.TrelloClientImpl.get_current_user", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_current_user", autospec=True)
 def test_get_current_user(mock_get_user: Mock) -> None:
     """Test /users/me returns user info."""
     mock_get_user.return_value = KanbanUser(
@@ -82,7 +82,7 @@ def test_get_current_user(mock_get_user: Mock) -> None:
     assert data["username"] == "test"
 
 # Test /boards endpoints
-@patch("trello_client_service.main.TrelloClientImpl.get_boards", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_boards", autospec=True)
 def test_get_boards(mock_get_boards: Mock) -> None:
     """Test /boards returns list of boards."""
     mock_get_boards.return_value = [
@@ -92,7 +92,7 @@ def test_get_boards(mock_get_boards: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert isinstance(response.json(), list)
 
-@patch("trello_client_service.main.TrelloClientImpl.get_board", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_board", autospec=True)
 def test_get_board(mock_get_board: Mock) -> None:
     """Test /boards/{board_id} returns board info."""
     mock_get_board.return_value = KanbanBoard(id="b1", name="Board1", description=None, closed=False, url="url1")
@@ -100,7 +100,7 @@ def test_get_board(mock_get_board: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["id"] == "b1"
 
-@patch("trello_client_service.main.TrelloClientImpl.create_board", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.create_board", autospec=True)
 def test_create_board(mock_create_board: Mock) -> None:
     """Test /boards POST creates a board."""
     mock_create_board.return_value = KanbanBoard(id="b2", name="Board2", description="desc", closed=False, url="url2")
@@ -108,7 +108,7 @@ def test_create_board(mock_create_board: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Board2"
 
-@patch("trello_client_service.main.TrelloClientImpl.update_board", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.update_board", autospec=True)
 def test_update_board(mock_update_board: Mock) -> None:
     """Test /boards/{board_id} PUT updates a board."""
     mock_update_board.return_value = KanbanBoard(id="b2", name="Board2-updated", description=None, closed=False, url="url2")
@@ -116,7 +116,7 @@ def test_update_board(mock_update_board: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Board2-updated"
 
-@patch("trello_client_service.main.TrelloClientImpl.delete_board", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.delete_board", autospec=True)
 def test_delete_board(mock_delete_board: Mock) -> None:
     """Test /boards/{board_id} DELETE deletes a board."""
     mock_delete_board.return_value = True
@@ -125,7 +125,7 @@ def test_delete_board(mock_delete_board: Mock) -> None:
     assert response.json()["success"] is True
 
 # Test /lists endpoints
-@patch("trello_client_service.main.TrelloClientImpl.get_lists", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_lists", autospec=True)
 def test_get_lists(mock_get_lists: Mock) -> None:
     """Test /boards/{board_id}/lists returns lists."""
     mock_get_lists.return_value = [
@@ -135,7 +135,7 @@ def test_get_lists(mock_get_lists: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert isinstance(response.json(), list)
 
-@patch("trello_client_service.main.TrelloClientImpl.create_list", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.create_list", autospec=True)
 def test_create_list(mock_create_list: Mock) -> None:
     """Test /boards/{board_id}/lists POST creates a list."""
     mock_create_list.return_value = KanbanList(id="l2", name="List2", board_id="b1", position=0.0, closed=False)
@@ -143,7 +143,7 @@ def test_create_list(mock_create_list: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "List2"
 
-@patch("trello_client_service.main.TrelloClientImpl.update_list", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.update_list", autospec=True)
 def test_update_list(mock_update_list: Mock) -> None:
     """Test /lists/{list_id} PUT updates a list."""
     mock_update_list.return_value = KanbanList(id="l2", name="List2-updated", board_id="b1", position=0.0, closed=False)
@@ -152,7 +152,7 @@ def test_update_list(mock_update_list: Mock) -> None:
     assert response.json()["name"] == "List2-updated"
 
 # Test /cards endpoints
-@patch("trello_client_service.main.TrelloClientImpl.get_cards", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_cards", autospec=True)
 def test_get_cards(mock_get_cards: Mock) -> None:
     """Test /lists/{list_id}/cards returns cards."""
     mock_get_cards.return_value = [
@@ -162,7 +162,7 @@ def test_get_cards(mock_get_cards: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert isinstance(response.json(), list)
 
-@patch("trello_client_service.main.TrelloClientImpl.get_card", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.get_card", autospec=True)
 def test_get_card(mock_get_card: Mock) -> None:
     """Test /cards/{card_id} returns card info."""
     mock_get_card.return_value = KanbanCard(id="c1", name="Card1", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
@@ -170,7 +170,7 @@ def test_get_card(mock_get_card: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["id"] == "c1"
 
-@patch("trello_client_service.main.TrelloClientImpl.create_card", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.create_card", autospec=True)
 def test_create_card(mock_create_card: Mock) -> None:
     """Test /lists/{list_id}/cards POST creates a card."""
     mock_create_card.return_value = KanbanCard(id="c2", name="Card2", list_id="l1", board_id="b1", description="desc", position=0.0, closed=False, url=None)
@@ -178,7 +178,7 @@ def test_create_card(mock_create_card: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Card2"
 
-@patch("trello_client_service.main.TrelloClientImpl.update_card", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.update_card", autospec=True)
 def test_update_card(mock_update_card: Mock) -> None:
     """Test /cards/{card_id} PUT updates a card."""
     mock_update_card.return_value = KanbanCard(id="c2", name="Card2-updated", list_id="l1", board_id="b1", description=None, position=0.0, closed=False, url=None)
@@ -186,7 +186,7 @@ def test_update_card(mock_update_card: Mock) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json()["name"] == "Card2-updated"
 
-@patch("trello_client_service.main.TrelloClientImpl.delete_card", autospec=True)
+@patch("kanban_client_service.main.TrelloClientImpl.delete_card", autospec=True)
 def test_delete_card(mock_delete_card: Mock) -> None:
     """Test /cards/{card_id} DELETE deletes a card."""
     mock_delete_card.return_value = True

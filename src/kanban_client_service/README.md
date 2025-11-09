@@ -22,7 +22,7 @@ export REDIRECT_URI="http://localhost:8000/auth/callback"
 
 2. Run the service:
 ```bash
-uvicorn trello_client_service.main:app --reload
+uvicorn kanban_client_service.main:app --reload
 ```
 
 3. Visit http://localhost:8000/docs for API documentation

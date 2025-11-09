@@ -1,10 +1,10 @@
-"""Additional tests to increase coverage for trello_client_service.main."""
+"""Additional tests to increase coverage for kanban_client_service.main."""
 
 from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
-from trello_client_service.main import app
+from kanban_client_service.main import app
 
 
 def test_auth_callback_page_served() -> None:

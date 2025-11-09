@@ -30,9 +30,9 @@ members = [
   "src/mail_client_service",
   "src/kanban_client_api",
   "src/trello_client_impl", 
-  "src/trello_client_service",
-  "src/trello_client_adapter",
-  "src/trello_generated_client",
+  "src/kanban_client_service",
+  "src/kanban_client_adapter",
+  "src/kanban_generated_client",
 ]
 
 [tool.ruff]
@@ -59,12 +59,12 @@ mypy_path = [
     "src/gmail_client_impl/src",
     "src/kanban_client_api/src",
     "src/trello_client_impl/src",
-    "src/trello_client_service/src",
-    "src/trello_client_adapter/src"
+    "src/kanban_client_service/src",
+    "src/kanban_client_adapter/src"
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
-exclude = ["^src/trello_generated_client/"]
+exclude = ["^src/kanban_generated_client/"]
 
 # Allow untyped imports for specific modules
 [[tool.mypy.overrides]]
@@ -80,7 +80,7 @@ ignore_missing_imports = true
 # duplicate module path issues in CI (package is vendored under src/).
 [[tool.mypy.overrides]]
 module = [
-    "trello_generated_client.*",
+    "kanban_generated_client.*",
 ]
 ignore_errors = true
 

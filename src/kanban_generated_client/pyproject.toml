@@ -1,7 +1,7 @@
 [project]
-name = "trello-generated-client"
+name = "kanban-generated-client"
 version = "0.1.0"
-description = "A client library for accessing Trello Client Service"
+description = "A client library for accessing Kanban Client Service"
 authors = []
 requires-python = ">=3.10"
 readme = "README.md"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [tool.uv.build-backend]
-module-name = "trello_generated_client"
+module-name = "kanban_generated_client"
 module-root = ""
 data = [
     "CHANGELOG.md",

@@ -1,5 +1,5 @@
 [project]
-name = "trello-client-service"
+name = "kanban-client-service"
 version = "0.1.0"
 description = "FastAPI service for Trello client operations"
 readme = "README.md"

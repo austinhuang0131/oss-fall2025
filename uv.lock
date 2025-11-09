@@ -9,15 +9,15 @@ resolution-markers = [
 [manifest]
 members = [
     "gmail-client-impl",
+    "kanban-client-adapter",
     "kanban-client-api",
+    "kanban-client-service",
+    "kanban-generated-client",
     "mail-client-adapter",
     "mail-client-api",
     "mail-client-service",
     "ta-assignment",
-    "trello-client-adapter",
     "trello-client-impl",
-    "trello-client-service",
-    "trello-generated-client",
 ]
 
 [[package]]
@@ -843,6 +843,32 @@ wheels = [
 ]
 
 [[package]]
+name = "kanban-client-adapter"
+version = "0.1.0"
+source = { editable = "src/kanban_client_adapter" }
+dependencies = [
+    { name = "kanban-client-api" },
+    { name = "kanban-generated-client" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "kanban-client-api", editable = "src/kanban_client_api" },
+    { name = "kanban-generated-client", editable = "src/kanban_generated_client" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
+]
+provides-extras = ["test"]
+
+[[package]]
 name = "kanban-client-api"
 version = "0.1.0"
 source = { editable = "src/kanban_client_api" }
@@ -855,6 +881,57 @@ test = [
 [package.metadata]
 requires-dist = [{ name = "pytest", marker = "extra == 'test'", specifier = ">=8.0.0" }]
 provides-extras = ["test"]
+
+[[package]]
+name = "kanban-client-service"
+version = "0.1.0"
+source = { editable = "src/kanban_client_service" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "kanban-client-api" },
+    { name = "pydantic" },
+    { name = "python-multipart" },
+    { name = "trello-client-impl" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "kanban-client-api", editable = "src/kanban_client_api" },
+    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
+    { name = "python-multipart", specifier = ">=0.0.6" },
+    { name = "trello-client-impl", editable = "src/trello_client_impl" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
+]
+provides-extras = ["test"]
+
+[[package]]
+name = "kanban-generated-client"
+version = "0.1.0"
+source = { editable = "src/kanban_generated_client" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs", specifier = ">=22.2.0" },
+    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0,<3" },
+]
 
 [[package]]
 name = "mail-client-adapter"
@@ -2099,32 +2176,6 @@ wheels = [
 ]
 
 [[package]]
-name = "trello-client-adapter"
-version = "0.1.0"
-source = { editable = "src/trello_client_adapter" }
-dependencies = [
-    { name = "kanban-client-api" },
-    { name = "trello-generated-client" },
-]
-
-[package.optional-dependencies]
-test = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
-    { name = "kanban-client-api", editable = "src/kanban_client_api" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
-    { name = "trello-generated-client", editable = "src/trello_generated_client" },
-]
-provides-extras = ["test"]
-
-[[package]]
 name = "trello-client-impl"
 version = "0.1.0"
 source = { editable = "src/trello_client_impl" }
@@ -2155,57 +2206,6 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.6" },
 ]
 provides-extras = ["test"]
-
-[[package]]
-name = "trello-client-service"
-version = "0.1.0"
-source = { editable = "src/trello_client_service" }
-dependencies = [
-    { name = "fastapi" },
-    { name = "kanban-client-api" },
-    { name = "pydantic" },
-    { name = "python-multipart" },
-    { name = "trello-client-impl" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.optional-dependencies]
-test = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.104.0" },
-    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
-    { name = "kanban-client-api", editable = "src/kanban_client_api" },
-    { name = "pydantic", specifier = ">=2.5.0" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
-    { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "trello-client-impl", editable = "src/trello_client_impl" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
-]
-provides-extras = ["test"]
-
-[[package]]
-name = "trello-generated-client"
-version = "0.1.0"
-source = { editable = "src/trello_generated_client" }
-dependencies = [
-    { name = "attrs" },
-    { name = "httpx" },
-    { name = "python-dateutil" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "attrs", specifier = ">=22.2.0" },
-    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
-    { name = "python-dateutil", specifier = ">=2.8.0,<3" },
-]
 
 [[package]]
 name = "typer"

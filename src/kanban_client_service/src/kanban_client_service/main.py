@@ -7,19 +7,22 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
-from kanban_client_api import (
+from kanban_client_api.client import KanbanClient
+from kanban_client_api.exceptions import (
     KanbanAPIError,
     KanbanAuthenticationError,
+    KanbanNotFoundError,
+)
+from kanban_client_api.models import (
     KanbanBoard,
     KanbanCard,
-    KanbanClient,
     KanbanList,
-    KanbanNotFoundError,
     KanbanUser,
 )
-from trello_client_impl import TrelloClientImpl, TrelloOAuthHandler
+from trello_client_impl.oauth import TrelloOAuthHandler
+from trello_client_impl.trello_impl import TrelloClientImpl
 
-from trello_client_service.responses import (
+from .responses import (
     common_error_responses,
     notfound_resource_response,
 )
@@ -441,7 +444,7 @@ async def update_card(
 
 @app.delete(
     "/cards/{card_id}",
-    responses={**notfound_resource_response, **common_error_responses, 200: {"model": BooleanSuccessResponse}},
+    responses={**notfound_resource_response, **common_error_responses},
 )
 async def delete_card(
     card_id: str,

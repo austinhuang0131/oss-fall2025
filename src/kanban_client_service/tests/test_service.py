@@ -5,7 +5,7 @@ from http import HTTPStatus
 import pytest
 from fastapi.testclient import TestClient
 
-from trello_client_service.main import app
+from kanban_client_service.main import app
 
 
 @pytest.fixture
