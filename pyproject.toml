@@ -102,7 +102,7 @@ markers = [
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__main__.py"]
+omit = ["*/tests/*", "*/__main__.py", "*/kanban_generated_client/*"]
 
 [tool.coverage.report]
 fail_under = 85 # Justification: A high threshold ensures most code is tested.
