@@ -241,12 +241,11 @@ async def auth_callback(
         HTTPException: If state validation fails or token exchange fails
 
     """
-    try:
         # Validate state parameter for CSRF protection
-        if not csrf_manager.validate_state(state):
-            msg = "Invalid or missing state parameter - possible CSRF attack"
-            raise HTTPException(status_code=403, detail=msg)
-
+    if not csrf_manager.validate_state(state):
+        msg = "Invalid or missing state parameter - possible CSRF attack"
+        raise HTTPException(status_code=403, detail=msg)
+    try:
         # Exchange token for credentials
         client = kanban_client_api.get_client(token=token)
         access_token = await client.exchange_token()

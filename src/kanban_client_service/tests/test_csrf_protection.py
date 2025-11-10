@@ -158,7 +158,7 @@ class TestOAuthCallbackEndpoint:
                     "id": "user123",
                     "full_name": "Test User",
                 },
-            )()
+            )(),
         )
         mock_get_client.return_value = mock_client
 
