@@ -115,7 +115,14 @@ class TestGmailClientAuthentication:
         mock_build.return_value = mock_service
 
         # ACT
-        GmailClient()
+        with (
+            patch.object(GmailClient, "_save_token") as mock_save,
+            patch("gmail_client_impl.gmail_impl.Path") as mock_path,
+        ):
+            # Pretend token file already exists so we don't write a real file
+            mock_path.return_value.exists.return_value = True
+            GmailClient()
+            mock_save.assert_not_called()
 
         # ASSERT
         mock_creds_class.assert_called_once_with(

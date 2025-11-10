@@ -15,6 +15,7 @@ dev = [
     "mypy>=1.17.0",
     "pymdown-extensions>=10.16.1",
     "pytest>=8.4.1",
+    "pytest-asyncio>=1.2.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.7",
     "types-requests>=2.32.4.20250611",
@@ -27,6 +28,11 @@ members = [
   "src/gmail_client_impl",
   "src/mail_client_adapter",
   "src/mail_client_service",
+  "src/kanban_client_api",
+  "src/trello_client_impl", 
+  "src/kanban_client_service",
+  "src/kanban_client_adapter",
+  "src/kanban_generated_client",
 ]
 
 [tool.ruff]
@@ -42,12 +48,23 @@ ignore = [
 ]
 per-file-ignores = { "**/test_*.py" = ["TRY300", "BLE001", "ANN401", "SLF001", "E501", "S105", "ARG001", "ARG002", "S106", "INP001", "PLC0415"] }
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["Depends", "fastapi.Depends", "fastapi.params.Depends"]
+
 [tool.mypy]
 strict = true
 explicit_package_bases = true # Required for src layout
-mypy_path = ["src/mail_client_api/src", "src/gmail_client_impl/src"]
+mypy_path = [
+    "src/mail_client_api/src",
+    "src/gmail_client_impl/src",
+    "src/kanban_client_api/src",
+    "src/trello_client_impl/src",
+    "src/kanban_client_service/src",
+    "src/kanban_client_adapter/src"
+]
 ignore_missing_imports = false
 warn_unused_ignores = false
+exclude = ["^src/kanban_generated_client/"]
 
 # Allow untyped imports for specific modules
 [[tool.mypy.overrides]]
@@ -59,6 +76,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Exclude the generated OpenAPI client from static analysis to avoid
+# duplicate module path issues in CI (package is vendored under src/).
+[[tool.mypy.overrides]]
+module = [
+    "kanban_generated_client.*",
+]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 pythonpath = [
     ".", 
@@ -66,6 +91,7 @@ pythonpath = [
 ]
 testpaths = ["tests", "src/*/tests"]
 addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
+asyncio_mode = "auto"
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
     "integration: marks tests as integration tests (medium speed, real dependencies)",
@@ -76,7 +102,7 @@ markers = [
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__main__.py"]
+omit = ["*/tests/*", "*/__main__.py", "*/kanban_generated_client/*"]
 
 [tool.coverage.report]
 fail_under = 85 # Justification: A high threshold ensures most code is tested.

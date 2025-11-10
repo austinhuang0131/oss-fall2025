@@ -1,0 +1,48 @@
+[project]
+name = "trello-client-impl"
+version = "0.1.0"
+description = "Concrete implementation of the Trello client API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "kanban-client-api",
+    "aiohttp>=3.9.0",
+    "asyncpg>=0.29.0",
+    "pydantic>=2.5.0",
+    "python-multipart>=0.0.6",
+]
+
+[tool.uv.sources]
+kanban-client-api = { workspace = true }
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[tool.ruff.lint.pylint]
+max-args = 10
+
+[tool.ruff]
+extend = "../../pyproject.toml"

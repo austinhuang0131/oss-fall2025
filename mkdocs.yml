@@ -21,11 +21,18 @@ theme:
 nav:
   - 'Overview': 'index.md'
   - 'Architecture': 'component.md'
+  - 'Guides':
+    - 'Kanban Integration': 'kanban-integration.md'
   - 'API Reference':
     - 'Mail Client API': 'api/mail_client_api.md'
     - 'Gmail Client Implementation': 'api/gmail_client_impl.md'
     - 'Mail Client Adapter': 'api/mail_client_adapter.md'
     - 'Mail Client Service': 'api/mail_client_service.md'
+    - 'Kanban Client API': 'api/kanban_client_api.md'
+    - 'Kanban Generated Client': 'api/kanban_generated_client.md'
+    - 'Kanban Client Adapter': 'api/kanban_client_adapter.md'
+    - 'Trello Client Implementation': 'api/trello_client_impl.md'
+    - 'Kanban Client Service': 'api/kanban_client_service.md'
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -43,6 +50,11 @@ plugins:
               - src/mail_client_api/src
               - src/gmail_client_impl/src
               - src/gmail_message_impl/src
+              - src/kanban_client_api/src
+              - src/kanban_generated_client
+              - src/kanban_client_adapter/src
+              - src/trello_client_impl/src
+              - src/kanban_client_service/src
             show_source: false
             docstring_section_style: spacy
             members_order: source

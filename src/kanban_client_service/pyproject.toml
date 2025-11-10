@@ -1,0 +1,47 @@
+[project]
+name = "kanban-client-service"
+version = "0.1.0"
+description = "FastAPI service for Trello client operations"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "kanban-client-api",
+    "trello-client-impl",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.5.0",
+]
+
+[tool.uv.sources]
+kanban-client-api = { workspace = true }
+trello-client-impl = { workspace = true }
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[tool.ruff]
+extend = "../../pyproject.toml"
