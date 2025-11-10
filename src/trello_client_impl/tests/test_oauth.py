@@ -9,7 +9,19 @@ from trello_client_impl.oauth import TrelloOAuthHandler
 class TestTrelloOAuthHandler:
     """Unit tests for OAuth handler."""
 
-    def test_get_authorization_url_contains_required_params(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_generate_state_returns_non_empty_string(self) -> None:
+        """Generate state should return a non-empty random string."""
+        state = TrelloOAuthHandler.generate_state()
+        assert isinstance(state, str)
+        assert len(state) > 0
+
+    def test_generate_state_returns_different_values(self) -> None:
+        """Each call to generate_state should return a different value."""
+        state1 = TrelloOAuthHandler.generate_state()
+        state2 = TrelloOAuthHandler.generate_state()
+        assert state1 != state2
+
+    def test_get_authorization_url_contains_required_params(self) -> None:
         """Authorization URL should include key, response_type and return_url."""
         handler = TrelloOAuthHandler(api_key="k", api_secret="s", redirect_uri="http://localhost/callback")
         url = handler.get_authorization_url()

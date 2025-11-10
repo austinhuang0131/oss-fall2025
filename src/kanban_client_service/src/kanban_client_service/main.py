@@ -1,6 +1,8 @@
 """FastAPI service for Trello client operations."""
 
 import os
+import secrets
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,6 +28,59 @@ from kanban_client_service.responses import (
     common_error_responses,
     notfound_resource_response,
 )
+
+
+# CSRF state management for OAuth flows
+class CSRFStateManager:
+    """Simple CSRF state token manager for OAuth flows."""
+
+    def __init__(self, expiry_seconds: int = 600) -> None:
+        """Initialize CSRF state manager.
+
+        Args:
+            expiry_seconds: How long a state token is valid (default: 10 minutes)
+
+        """
+        self.states: dict[str, float] = {}
+        self.expiry_seconds = expiry_seconds
+
+    def generate_state(self) -> str:
+        """Generate a new CSRF state token.
+
+        Returns:
+            str: Random state token
+
+        """
+        state = secrets.token_urlsafe(32)
+        self.states[state] = time.time()
+        return state
+
+    def validate_state(self, state: str) -> bool:
+        """Validate a CSRF state token.
+
+        Args:
+            state: State token to validate
+
+        Returns:
+            bool: True if state is valid and not expired, False otherwise
+
+        """
+        if state not in self.states:
+            return False
+
+        creation_time = self.states[state]
+        if time.time() - creation_time > self.expiry_seconds:
+            # Token expired, remove it
+            del self.states[state]
+            return False
+
+        # Token valid, remove it (one-time use)
+        del self.states[state]
+        return True
+
+
+csrf_manager = CSRFStateManager()
+
 
 # Try to load .env file if python-dotenv is available
 try:
@@ -87,13 +142,16 @@ async def health_check() -> dict[str, str]:
 # OAuth endpoints
 @app.get("/auth/login")
 async def login() -> dict[str, str]:
-    """Start OAuth login flow.
+    """Start OAuth login flow with CSRF protection.
 
     Returns:
-        dict: Authorization URL
+        dict: Authorization URL and CSRF state token
 
     """
     try:
+        # Generate CSRF state token
+        state = csrf_manager.generate_state()
+
         # Create a client without token for initial OAuth flow
         client = kanban_client_api.get_client(token=None)
         auth_url = await client.get_authorization_url()
@@ -102,6 +160,7 @@ async def login() -> dict[str, str]:
     else:
         return {
             "authorization_url": auth_url,
+            "state": state,
         }
 
 
@@ -133,11 +192,11 @@ async def auth_callback_page() -> Response:
             });
             return params;
         }
-        async function sendToken(token) {
+        async function sendToken(token, state) {
             const res = await fetch('/auth/callback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
+                body: JSON.stringify({ token, state })
             });
             if (res.ok) {
                 document.getElementById('status').textContent = 'Authentication successful!';
@@ -150,7 +209,7 @@ async def auth_callback_page() -> Response:
             const params = getFragmentParams();
             if (params.token) {
                 document.getElementById('status').textContent = 'Token found, sending to server...';
-                sendToken(params.token);
+                sendToken(params.token, params.state || '');
             } else {
                 document.getElementById('status').textContent = 'No token found in fragment.';
             }
@@ -166,28 +225,46 @@ async def auth_callback_page() -> Response:
 async def auth_callback(
     response: Response,
     token: Annotated[str, Body(embed=True)],
+    state: Annotated[str, Body(embed=True)] = "",
 ) -> dict[str, str]:
-    """Handle OAuth callback via POST from JS page.
+    """Handle OAuth callback via POST from JS page with CSRF protection.
 
     Args:
         response: FastAPI response object
         token: OAuth token from Trello
+        state: State parameter for CSRF protection
 
     Returns:
         dict: Success message and token
 
+    Raises:
+        HTTPException: If state validation fails or token exchange fails
+
     """
     try:
+        # Validate state parameter for CSRF protection
+        if not csrf_manager.validate_state(state):
+            msg = "Invalid or missing state parameter - possible CSRF attack"
+            raise HTTPException(status_code=403, detail=msg)
+
         # Exchange token for credentials
         client = kanban_client_api.get_client(token=token)
         access_token = await client.exchange_token()
-        # Set token in cookie
-        response.set_cookie(key="trello_token", value=access_token, httponly=True, secure=True)
+
+        # Set token in secure cookie with CSRF protection
+        response.set_cookie(
+            key="trello_token",
+            value=access_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+        )
+    except HTTPException:
+        raise
     except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
+
     return {"message": "Authentication successful", "token": access_token}
-
-
 # User endpoints
 @app.get(
     "/users/me",

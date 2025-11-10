@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import urllib.parse
 from http import HTTPStatus
 
@@ -32,13 +33,24 @@ class TrelloOAuthHandler:
         self.redirect_uri = redirect_uri
         self.base_url = "https://trello.com/1"
 
+    @staticmethod
+    def generate_state() -> str:
+        """Generate a random state token for CSRF protection.
+
+        Returns:
+            str: Random state token
+
+        """
+        return secrets.token_urlsafe(32)
+
     def get_authorization_url(self) -> str:
-        """Get the authorization URL for OAuth flow.
+        """Get the authorization URL for OAuth flow with CSRF protection.
 
         Returns:
             str: Authorization URL to redirect user to
 
         """
+        state = self.generate_state()
         params = {
             "key": self.api_key,
             "name": "Trello Client Service",
@@ -46,6 +58,7 @@ class TrelloOAuthHandler:
             "response_type": "token",
             "scope": "read,write",
             "return_url": self.redirect_uri,
+            "state": state,
         }
 
         query_string = urllib.parse.urlencode(params)

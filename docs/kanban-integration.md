@@ -111,7 +111,7 @@ The kanban system follows a clean architecture with multiple possible implementa
 
 - FastAPI application
 - HTTP endpoints for all kanban operations
-- OAuth callback handling
+- OAuth callback handling, with CSRF protection
 - Uses `kanban_client_api.get_client()` - receives whatever implementation is registered
 - Depends on all other packages
 
