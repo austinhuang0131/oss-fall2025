@@ -261,3 +261,25 @@ class KanbanClient(ABC):
             KanbanAPIError: If the API request fails.
 
         """
+
+    @abstractmethod
+    async def get_authorization_url(self) -> str:
+        """Get the authorization URL for OAuth flow.
+
+        Returns:
+            str: The authorization URL.
+
+        """
+
+    @abstractmethod
+    async def exchange_token(self) -> str:
+        """Exchange authorization code for access token.
+
+        Returns:
+            str: The access token.
+
+        """
+
+def get_client(*, token: str | None = None) -> KanbanClient:
+    """Return an instance of a Kanban Client."""
+    raise NotImplementedError

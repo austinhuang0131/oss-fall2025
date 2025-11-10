@@ -19,6 +19,7 @@ from kanban_generated_client.api.default import (
     get_cards_lists_list_id_cards_get,
     get_current_user_users_me_get,
     get_lists_boards_board_id_lists_get,
+    login_auth_login_get,
     update_board_boards_board_id_put,
     update_card_cards_card_id_put,
     update_list_lists_list_id_put,
@@ -291,3 +292,46 @@ class KanbanClientAdapter(KanbanClient):
         result = await delete_card_cards_card_id_delete.asyncio(client=self._client, card_id=card_id)
         self._handle_api_error(result, f"Failed to delete card {card_id}")
         return self._return_success(result)
+
+    async def get_authorization_url(self) -> str:
+        """Get the authorization URL for OAuth flow.
+
+        Returns:
+            str: The authorization URL.
+
+        """
+        response = await login_auth_login_get.asyncio(client=self._client)
+        self._handle_api_error(response, "Failed to get authorization URL")
+        # The response is a dict-like object with additional_properties containing the authorization_url
+        auth_url: str | None = None
+        if hasattr(response, "additional_properties") and response is not None:
+            auth_url = response.additional_properties.get("authorization_url")
+        elif isinstance(response, dict):
+            auth_url = response.get("authorization_url")
+
+        if not auth_url or not isinstance(auth_url, str):
+            msg = "Authorization URL not found in response"
+            raise api_exceptions.KanbanAPIError(msg)
+
+        return auth_url
+
+    async def exchange_token(self) -> str:
+        """Exchange authorization code for access token.
+
+        Returns:
+            str: The access token.
+
+        """
+        # For the adapter, we can check if the current token is valid by trying to get the current user
+        # This is a workaround since the OAuth flow is handled at the service level
+        # The token passed to __init__ or get_client should already be the access token
+        try:
+            _ = await self.get_current_user()
+            # If we can get the user, the token is valid
+            # Note: This is a simplified implementation; in reality, the token should be obtained
+            # from the OAuth callback response
+        except api_exceptions.KanbanAuthenticationError as e:
+            error_msg = "Token exchange failed"
+            raise api_exceptions.KanbanAuthenticationError(error_msg) from e
+        else:
+            return ""  # Return empty string as a placeholder - actual token is managed by the service

@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
+import kanban_client_api
+import trello_client_impl  # type: ignore[no-redef] # noqa: F401
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from kanban_client_api.client import KanbanClient
 from kanban_client_api.exceptions import (
@@ -13,16 +15,14 @@ from kanban_client_api.exceptions import (
     KanbanAuthenticationError,
     KanbanNotFoundError,
 )
-from kanban_client_api.models import (
-    KanbanBoard,
-    KanbanCard,
-    KanbanList,
-    KanbanUser,
-)
-from trello_client_impl.oauth import TrelloOAuthHandler
-from trello_client_impl.trello_impl import TrelloClientImpl
 
-from .responses import (
+from kanban_client_service.model_converter import (
+    board_to_dict,
+    card_to_dict,
+    list_to_dict,
+    user_to_dict,
+)
+from kanban_client_service.responses import (
     common_error_responses,
     notfound_resource_response,
 )
@@ -61,8 +61,8 @@ app = FastAPI(
 )
 
 
-def get_trello_client(request: Request) -> KanbanClient:
-    """Dependency to get Trello client instance from cookie or Authorization header."""
+def get_client(request: Request) -> KanbanClient:
+    """Dependency to get Kanban client instance from cookie or Authorization header."""
     token = None
     # Prefer Authorization header (Bearer)
     auth_header = request.headers.get("Authorization")
@@ -75,7 +75,7 @@ def get_trello_client(request: Request) -> KanbanClient:
         token = request.query_params.get("token")
     if not token:
         raise HTTPException(status_code=401, detail="Missing Trello token")
-    return TrelloClientImpl.from_env(token=token)
+    return kanban_client_api.get_client(token=token)
 
 
 @app.get("/health")
@@ -94,8 +94,9 @@ async def login() -> dict[str, str]:
 
     """
     try:
-        oauth_handler = TrelloOAuthHandler.from_env()
-        auth_url = oauth_handler.get_authorization_url()
+        # Create a client without token for initial OAuth flow
+        client = kanban_client_api.get_client(token=None)
+        auth_url = await client.get_authorization_url()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login failed: {e}") from e
     else:
@@ -177,9 +178,9 @@ async def auth_callback(
 
     """
     try:
-        oauth_handler = TrelloOAuthHandler.from_env()
         # Exchange token for credentials
-        access_token = await oauth_handler.exchange_token(token)
+        client = kanban_client_api.get_client(token=token)
+        access_token = await client.exchange_token()
         # Set token in cookie
         response.set_cookie(key="trello_token", value=access_token, httponly=True, secure=True)
     except KanbanAuthenticationError as e:
@@ -193,11 +194,12 @@ async def auth_callback(
     responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def get_current_user(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> KanbanUser:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> dict[str, str | None]:
     """Get current authenticated user."""
     try:
-        return await client.get_current_user()
+        user = await client.get_current_user()
+        return user_to_dict(user)
     except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
     except KanbanAPIError as e:
@@ -210,11 +212,12 @@ async def get_current_user(
     responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def get_boards(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> list[KanbanBoard]:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> list[dict[str, str | bool | None]]:
     """Get all boards accessible to the current user."""
     try:
-        return await client.get_boards()
+        boards = await client.get_boards()
+        return [board_to_dict(board) for board in boards]
     except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
     except KanbanAPIError as e:
@@ -227,11 +230,12 @@ async def get_boards(
 )
 async def get_board(
     board_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> KanbanBoard:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> dict[str, str | bool | None]:
     """Get a specific board by ID."""
     try:
-        return await client.get_board(board_id)
+        board = await client.get_board(board_id)
+        return board_to_dict(board)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -245,13 +249,14 @@ async def get_board(
     responses={**common_error_responses}, # type: ignore[dict-item]
 )
 async def create_board(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
     name: str,
     description: str | None = None,
-) -> KanbanBoard:
+) -> dict[str, str | bool | None]:
     """Create a new board."""
     try:
-        return await client.create_board(name, description)
+        board = await client.create_board(name, description)
+        return board_to_dict(board)
     except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
     except KanbanAPIError as e:
@@ -263,14 +268,15 @@ async def create_board(
     responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_board(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
     board_id: str,
     name: str | None = None,
     description: str | None = None,
-) -> KanbanBoard:
+) -> dict[str, str | bool | None]:
     """Update an existing board."""
     try:
-        return await client.update_board(board_id, name, description)
+        board = await client.update_board(board_id, name, description)
+        return board_to_dict(board)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -285,7 +291,7 @@ async def update_board(
 )
 async def delete_board(
     board_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
 ) -> dict[str, bool]:
     """Delete a board."""
     try:
@@ -307,11 +313,12 @@ async def delete_board(
 )
 async def get_lists(
     board_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> list[KanbanList]:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> list[dict[str, str | float | bool]]:
     """Get all lists in a board."""
     try:
-        return await client.get_lists(board_id)
+        lists = await client.get_lists(board_id)
+        return [list_to_dict(lst) for lst in lists]
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -327,11 +334,12 @@ async def get_lists(
 async def create_list(
     board_id: str,
     name: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> KanbanList:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> dict[str, str | float | bool]:
     """Create a new list in a board."""
     try:
-        return await client.create_list(board_id, name)
+        lst = await client.create_list(board_id, name)
+        return list_to_dict(lst)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -345,13 +353,14 @@ async def create_list(
     responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_list(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
     list_id: str,
     name: str | None = None,
-) -> KanbanList:
+) -> dict[str, str | float | bool]:
     """Update an existing list."""
     try:
-        return await client.update_list(list_id, name)
+        lst = await client.update_list(list_id, name)
+        return list_to_dict(lst)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -367,11 +376,12 @@ async def update_list(
 )
 async def get_cards(
     list_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> list[KanbanCard]:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> list[dict[str, str | float | bool | None]]:
     """Get all cards in a list."""
     try:
-        return await client.get_cards(list_id)
+        cards = await client.get_cards(list_id)
+        return [card_to_dict(card) for card in cards]
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -386,11 +396,12 @@ async def get_cards(
 )
 async def get_card(
     card_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
-) -> KanbanCard:
+    client: Annotated[KanbanClient, Depends(get_client)],
+) -> dict[str, str | float | bool | None]:
     """Get a specific card by ID."""
     try:
-        return await client.get_card(card_id)
+        card = await client.get_card(card_id)
+        return card_to_dict(card)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -404,14 +415,15 @@ async def get_card(
     responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def create_card(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
     list_id: str,
     name: str,
     description: str | None = None,
-) -> KanbanCard:
+) -> dict[str, str | float | bool | None]:
     """Create a new card in a list."""
     try:
-        return await client.create_card(list_id, name, description)
+        card = await client.create_card(list_id, name, description)
+        return card_to_dict(card)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -425,15 +437,16 @@ async def create_card(
     responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
 )
 async def update_card(
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
     card_id: str,
     name: str | None = None,
     description: str | None = None,
     list_id: str | None = None,
-) -> KanbanCard:
+) -> dict[str, str | float | bool | None]:
     """Update an existing card."""
     try:
-        return await client.update_card(card_id, name, description, list_id)
+        card = await client.update_card(card_id, name, description, list_id)
+        return card_to_dict(card)
     except KanbanNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     except KanbanAuthenticationError as e:
@@ -448,7 +461,7 @@ async def update_card(
 )
 async def delete_card(
     card_id: str,
-    client: Annotated[KanbanClient, Depends(get_trello_client)],
+    client: Annotated[KanbanClient, Depends(get_client)],
 ) -> dict[str, bool]:
     """Delete a card."""
     try:

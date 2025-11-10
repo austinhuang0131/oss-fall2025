@@ -6,6 +6,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
+import kanban_client_api
 from kanban_client_api.client import KanbanClient
 from kanban_client_api.exceptions import (
     KanbanAPIError,
@@ -27,15 +28,8 @@ class TrelloClientImpl(KanbanClient):
         self,
         token: str | None = None,
         oauth_handler: TrelloOAuthHandler | None = None,
-        db_url: str | None = None,
-        user_id: str | None = None,
     ) -> None:
         """Initialize Trello client implementation.
-
-        Backward-compatibility: older callers passed ``db_url`` and ``user_id``
-        when credentials were stored in a database. The current implementation
-        no longer uses a database, but we still accept and store these optional
-        parameters so existing code and tests keep working without modification.
 
         Args:
             token: Trello API token. Optional in tests where requests are mocked.
@@ -48,9 +42,6 @@ class TrelloClientImpl(KanbanClient):
         self.token = token or ""
         self.oauth_handler = oauth_handler or TrelloOAuthHandler.from_env()
         self.base_url = "https://api.trello.com/1"
-        # Compatibility attributes (not used by runtime logic)
-        self.db_url = db_url
-        self.user_id = user_id
 
 
     async def _make_request(
@@ -374,18 +365,23 @@ class TrelloClientImpl(KanbanClient):
         await self._make_request("DELETE", f"/cards/{card_id}")
         return True
 
+    async def get_authorization_url(self) -> str:
+        """Get the authorization URL for OAuth flow."""
+        return self.oauth_handler.get_authorization_url()
+
+    async def exchange_token(self) -> str:
+        """Check if the current token is valid."""
+        return await self.oauth_handler.exchange_token(self.token)
+
     async def close(self) -> None:
         """Close client (no-op)."""
 
-    @classmethod
-    def from_env(cls, token: str) -> TrelloClientImpl:
-        """Create client from environment variables and token.
 
-        Args:
-            token: Trello API token
+def get_client_impl(*, token: str | None = None) -> KanbanClient:
+    """Return a configured :class:`TrelloClientImpl` instance."""
+    return TrelloClientImpl(token)
 
-        Returns:
-            TrelloClientImpl: Configured client instance
 
-        """
-        return cls(token=token)
+def register() -> None:
+    """Register the Trello client implementation with the Kanban client API."""
+    kanban_client_api.get_client = get_client_impl

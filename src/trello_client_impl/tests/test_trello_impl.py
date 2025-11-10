@@ -24,15 +24,11 @@ class TestTrelloClientImpl:
     def client(self, mock_oauth_handler: TrelloOAuthHandler) -> TrelloClientImpl:
         """Create test client."""
         return TrelloClientImpl(
-            db_url="postgresql://test:test@localhost/test",
             oauth_handler=mock_oauth_handler,
-            user_id="test_user_id",
         )
 
     async def test_client_initialization(self, client: TrelloClientImpl) -> None:
         """Test client initializes correctly."""
-        assert client.db_url == "postgresql://test:test@localhost/test"
-        assert client.user_id == "test_user_id"
         assert client.base_url == "https://api.trello.com/1"
 
     async def test_get_current_user_success(self, client: TrelloClientImpl, monkeypatch: pytest.MonkeyPatch) -> None:

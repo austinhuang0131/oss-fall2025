@@ -94,9 +94,9 @@ def create_mock_user(
 @pytest.fixture
 def mock_kanban_client() -> Generator[MagicMock, Any, None]:
     """Create a mock Kanban client for testing."""
-    with patch("kanban_client_service.main.TrelloClientImpl") as mock:
+    with patch("kanban_client_api.get_client") as mock:
         mock_instance = AsyncMock()
-        mock.from_env.return_value = mock_instance
+        mock.return_value = mock_instance
         yield mock_instance
 
 
