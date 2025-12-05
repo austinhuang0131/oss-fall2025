@@ -1,5 +1,6 @@
 """Helper functions to convert ABC objects to JSON-serializable dicts."""
 from kanban_client_api.models import KanbanBoard, KanbanCard, KanbanList, KanbanUser
+from ticket_api.models import Ticket
 
 
 def board_to_dict(board: KanbanBoard) -> dict[str, str | bool | None]:
@@ -48,4 +49,14 @@ def user_to_dict(user: KanbanUser) -> dict[str, str | None]:
         "username": user.username,
         "full_name": user.full_name,
         "email": user.email,
+    }
+
+
+def ticket_to_dict(ticket: Ticket) -> dict[str, str | bool]:
+    """Convert Ticket ABC to dictionary."""
+    return {
+        "id": ticket.id,
+        "title": ticket.title,
+        "description": ticket.description,
+        "status": ticket.status,
     }

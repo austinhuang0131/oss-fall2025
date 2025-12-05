@@ -1,0 +1,17 @@
+[project]
+name = "trello-ticket-impl"
+version = "1.0.0"
+description = "Trello implementation of the Ticket API"
+requires-python = ">=3.11"
+dependencies = [
+    "ticket-api",
+    "aiohttp>=3.11.18",
+    "trello-client-impl",
+]
+
+[tool.uv.sources]
+ticket-api = { workspace = true }
+trello-client-impl = { workspace = true }
+
+[dependency-groups]
+dev = []
