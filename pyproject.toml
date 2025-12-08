@@ -64,7 +64,8 @@ mypy_path = [
     "src/kanban_client_service/src",
     "src/kanban_client_adapter/src",
     "src/ticket_api/src",
-    "src/trello_ticket_impl/src"
+    "src/trello_ticket_impl/src",
+    "typings",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false

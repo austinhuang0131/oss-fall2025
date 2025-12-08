@@ -17,7 +17,6 @@ members = [
     "mail-client-api",
     "mail-client-service",
     "ta-assignment",
-    "ticket-api",
     "trello-client-impl",
     "trello-ticket-impl",
 ]
@@ -893,9 +892,7 @@ dependencies = [
     { name = "kanban-client-api" },
     { name = "pydantic" },
     { name = "python-multipart" },
-    { name = "ticket-api" },
     { name = "trello-client-impl" },
-    { name = "trello-ticket-impl" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -915,9 +912,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "ticket-api", editable = "src/ticket_api" },
     { name = "trello-client-impl", editable = "src/trello_client_impl" },
-    { name = "trello-ticket-impl", editable = "src/trello_ticket_impl" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
 provides-extras = ["test"]
@@ -1437,6 +1432,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/ed/1e/da78394146017aa4e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/52/c7/1c3bf6d584c45424e421e793af8334b6e069c9a8de58b6c4f1337f3e1ce8/openapi_python_client-0.27.0-py3-none-any.whl", hash = "sha256:a06bd80a3b958ff7c7f34fda8aace61f3b55d22990e0c1e2328f5254d26f9a0a", size = 182659, upload-time = "2025-10-28T00:43:27.671Z" },
 ]
+
+[[package]]
+name = "oss-apis"
+version = "0.1.0"
+source = { git = "https://github.com/ivanearisty/OSS-APIs.git#e987e691897410118d04a63f6523af648dbd5279" }
 
 [[package]]
 name = "packaging"
@@ -2135,16 +2135,6 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
-name = "ticket-api"
-version = "1.0.0"
-source = { editable = "src/ticket_api" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = []
-
-[[package]]
 name = "tomli"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2231,16 +2221,27 @@ version = "1.0.0"
 source = { editable = "src/trello_ticket_impl" }
 dependencies = [
     { name = "aiohttp" },
-    { name = "ticket-api" },
+    { name = "oss-apis" },
     { name = "trello-client-impl" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.18" },
-    { name = "ticket-api", editable = "src/ticket_api" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.25.0" },
+    { name = "oss-apis", git = "https://github.com/ivanearisty/OSS-APIs.git" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
     { name = "trello-client-impl", editable = "src/trello_client_impl" },
 ]
+provides-extras = ["test"]
 
 [package.metadata.requires-dev]
 dev = []

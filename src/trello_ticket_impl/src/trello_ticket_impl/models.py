@@ -1,6 +1,6 @@
 """Concrete models for Trello implementation of Ticket ABC."""
 
-from ticket_api.models import Ticket
+from tickets_api.src.tickets_api import Ticket, TicketStatus
 
 
 class TrelloTicket(Ticket):
@@ -11,7 +11,8 @@ class TrelloTicket(Ticket):
         ticket_id: str,
         title: str,
         description: str,
-        status: bool,
+        status: TicketStatus,
+        assignee: str | None,
     ) -> None:
         """Initialize TrelloTicket.
 
@@ -20,12 +21,14 @@ class TrelloTicket(Ticket):
             title: Title of the ticket.
             description: Description of the ticket.
             status: Status of the ticket (False = Open/To Do, True = Done).
+            assignee: ID of the user assigned to the ticket, if any.
 
         """
         self._id: str = ticket_id
         self._title: str = title
         self._description: str = description
-        self._status: bool = status
+        self._status: TicketStatus = status
+        self._assignee: str | None = assignee
 
     @property
     def id(self) -> str:
@@ -43,10 +46,11 @@ class TrelloTicket(Ticket):
         return self._description
 
     @property
-    def status(self) -> bool:
-        """The status of the ticket.
-
-        False = Open / To Do
-        True = Done / Completed
-        """
+    def status(self) -> TicketStatus:
+        """The status of the ticket."""
         return self._status
+
+    @property
+    def assignee(self) -> str | None:
+        """The assignee of the ticket."""
+        return self._assignee

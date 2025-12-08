@@ -9,8 +9,6 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "kanban-client-api",
     "trello-client-impl",
-    "ticket-api",
-    "trello-ticket-impl",
     "python-multipart>=0.0.6",
     "pydantic>=2.5.0",
 ]
@@ -18,8 +16,6 @@ dependencies = [
 [tool.uv.sources]
 kanban-client-api = { workspace = true }
 trello-client-impl = { workspace = true }
-ticket-api = { workspace = true }
-trello-ticket-impl = { workspace = true }
 
 [project.optional-dependencies]
 test = [
