@@ -9,9 +9,7 @@ from pathlib import Path
 from typing import Annotated
 
 import kanban_client_api
-import ticket_api
 import trello_client_impl  # type: ignore[no-redef] # noqa: F401
-import trello_ticket_impl  # type: ignore[no-redef] # noqa: F401
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from kanban_client_api.client import KanbanClient
 from kanban_client_api.exceptions import (
@@ -19,18 +17,11 @@ from kanban_client_api.exceptions import (
     KanbanAuthenticationError,
     KanbanNotFoundError,
 )
-from ticket_api.client import TicketClient
-from ticket_api.exceptions import (
-    TicketAPIError,
-    TicketAuthenticationError,
-    TicketNotFoundError,
-)
 
 from kanban_client_service.model_converter import (
     board_to_dict,
     card_to_dict,
     list_to_dict,
-    ticket_to_dict,
     user_to_dict,
 )
 from kanban_client_service.responses import (
@@ -140,23 +131,6 @@ def get_client(request: Request) -> KanbanClient:
     if not token:
         raise HTTPException(status_code=401, detail="Missing Trello token")
     return kanban_client_api.get_client(token=token)
-
-
-def get_ticket_client(request: Request) -> TicketClient:
-    """Dependency to get Ticket client instance from cookie or Authorization header."""
-    token = None
-    # Prefer Authorization header (Bearer)
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.lower().startswith("bearer "):
-        token = auth_header[7:]
-    elif "trello_token" in request.cookies:
-        token = request.cookies["trello_token"]
-    else:
-        # Try query param for backward compatibility
-        token = request.query_params.get("token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Missing Trello token")
-    return ticket_api.get_client(token=token)
 
 
 @app.get("/health")
@@ -586,136 +560,6 @@ async def delete_card(
     except KanbanAuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e)) from None
     except KanbanAPIError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-    else:
-        return {"success": success}
-
-
-# ============================================================================
-# TICKET API ENDPOINTS
-# ============================================================================
-
-@app.post(
-    "/tickets",
-    responses={**common_error_responses}, # type: ignore[dict-item]
-)
-async def create_ticket(
-    title: Annotated[str, Body(embed=True)],
-    description: Annotated[str, Body(embed=True)],
-    client: Annotated[TicketClient, Depends(get_ticket_client)],
-) -> dict[str, str | bool]:
-    """Create a new ticket.
-
-    Args:
-        title: The title of the ticket
-        description: The description of the ticket
-        client: The Ticket client instance
-
-    Returns:
-        dict: The created ticket
-
-    """
-    try:
-        ticket = await client.create_ticket(title, description)
-    except TicketAuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from None
-    except TicketAPIError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-    else:
-        return ticket_to_dict(ticket)
-
-
-@app.get(
-    "/tickets/{ticket_id}",
-    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
-)
-async def get_ticket(
-    ticket_id: str,
-    client: Annotated[TicketClient, Depends(get_ticket_client)],
-) -> dict[str, str | bool]:
-    """Get a specific ticket by ID.
-
-    Args:
-        ticket_id: The ID of the ticket to retrieve
-        client: The Ticket client instance
-
-    Returns:
-        dict: The requested ticket
-
-    """
-    try:
-        ticket = await client.get_ticket(ticket_id)
-    except TicketNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
-    except TicketAuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from None
-    except TicketAPIError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-    else:
-        return ticket_to_dict(ticket)
-
-
-@app.put(
-    "/tickets/{ticket_id}",
-    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
-)
-async def update_ticket(
-    ticket_id: str,
-    title: Annotated[str, Body(embed=True)],
-    description: Annotated[str, Body(embed=True)],
-    status: Annotated[bool, Body(embed=True)],
-    client: Annotated[TicketClient, Depends(get_ticket_client)],
-) -> dict[str, str | bool]:
-    """Update an existing ticket.
-
-    Args:
-        ticket_id: The ID of the ticket to update
-        title: New title for the ticket
-        description: New description for the ticket
-        status: New status for the ticket (False = Open, True = Done)
-        client: The Ticket client instance
-
-    Returns:
-        dict: The updated ticket
-
-    """
-    try:
-        ticket = await client.update_ticket(ticket_id, title, description, status)
-    except TicketNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
-    except TicketAuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from None
-    except TicketAPIError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-    else:
-        return ticket_to_dict(ticket)
-
-
-@app.delete(
-    "/tickets/{ticket_id}",
-    responses={**notfound_resource_response, **common_error_responses}, # type: ignore[dict-item]
-)
-async def delete_ticket(
-    ticket_id: str,
-    client: Annotated[TicketClient, Depends(get_ticket_client)],
-) -> dict[str, bool]:
-    """Delete a ticket.
-
-    Args:
-        ticket_id: The ID of the ticket to delete
-        client: The Ticket client instance
-
-    Returns:
-        dict: Success status
-
-    """
-    try:
-        success = await client.delete_ticket(ticket_id)
-    except TicketNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
-    except TicketAuthenticationError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from None
-    except TicketAPIError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
     else:
         return {"success": success}
