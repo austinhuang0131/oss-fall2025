@@ -309,8 +309,12 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        _ = self._make_request("DELETE", f"/cards/{ticket_id}")
-        return True
+        try:
+            _ = self._make_request("DELETE", f"/cards/{ticket_id}")
+        except TrelloAPIError:
+            return False
+        else:
+            return True
 
     def get_ticket(self, ticket_id: str) -> Ticket:
         """Get a specific ticket by ID.
