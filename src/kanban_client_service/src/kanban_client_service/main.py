@@ -1,4 +1,4 @@
-"""FastAPI service for Ticket operations."""
+"""FastAPI service for Trello client operations."""
 
 import os
 import secrets
@@ -12,18 +12,22 @@ import kanban_client_api
 import trello_client_impl  # type: ignore[no-redef] # noqa: F401
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, Response
 from kanban_client_api.client import KanbanClient
-
-from kanban_client_service.exceptions import (
-    TicketAPIError,
-    TicketAuthenticationError,
-    TicketNotFoundError,
+from kanban_client_api.exceptions import (
+    KanbanAPIError,
+    KanbanAuthenticationError,
+    KanbanNotFoundError,
 )
-from kanban_client_service.model_converter import ticket_to_dict
+
+from kanban_client_service.model_converter import (
+    board_to_dict,
+    card_to_dict,
+    list_to_dict,
+    user_to_dict,
+)
 from kanban_client_service.responses import (
     common_error_responses,
     notfound_resource_response,
 )
-from kanban_client_service.ticket_service_adapter import TrelloTicketService
 
 
 # CSRF state management for OAuth flows
@@ -105,15 +109,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
 
 
 app = FastAPI(
-    title="Ticket Service",
-    description="A standardized ticketing service API",
-    version="1.0.0",
+    title="Trello Client Service",
+    description="A service for interacting with Trello boards, lists, and cards",
+    version="0.1.0",
     lifespan=lifespan,
 )
 
 
-def get_ticket_service(request: Request) -> TrelloTicketService:
-    """Dependency to get Ticket service instance from cookie or Authorization header."""
+def get_client(request: Request) -> KanbanClient:
+    """Dependency to get Kanban client instance from cookie or Authorization header."""
     token = None
     # Prefer Authorization header (Bearer)
     auth_header = request.headers.get("Authorization")
@@ -125,10 +129,8 @@ def get_ticket_service(request: Request) -> TrelloTicketService:
         # Try query param for backward compatibility
         token = request.query_params.get("token")
     if not token:
-        raise HTTPException(status_code=401, detail="Missing authentication token")
-    
-    client = kanban_client_api.get_client(token=token)
-    return TrelloTicketService(client)
+        raise HTTPException(status_code=401, detail="Missing Trello token")
+    return kanban_client_api.get_client(token=token)
 
 
 @app.get("/health")
