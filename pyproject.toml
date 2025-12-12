@@ -35,7 +35,20 @@ members = [
   "src/kanban_generated_client",
   "src/ticket_api",
   "src/trello_ticket_impl",
+  "src/chat_ticket_integration",
 ]
+
+[tool.uv.sources]
+ta-assignment-ivan = { git = "https://github.com/ivanearisty/oss-taapp", branch = "root" }
+ta-assignment-gsiri = { git = "https://github.com/gsiri-code/oss-taapp", branch = "root" }
+ta-assignment-natasha = { git = "https://github.com/natashagit/oss-nml", branch = "root" }
+ta-assignment-raunak = { git = "https://github.com/raunak-choudhary/ospsd-team4-fall2025", branch = "main" }
+ta-assignment-ranjan = { git = "https://github.com/ranjan2601/OSPD-Fall-25", branch = "main" }
+ta-assignment-kia = { git = "https://github.com/kiamygomes/osdp-team6", branch = "main" }
+ta-assignment-koitu = { git = "https://github.com/koitu/oss-taapp", branch = "main" }
+ta-assignment-peter = { git = "https://github.com/PeterJYE/oss-taapp", branch = "main" }
+ta-assignment-shichen = { git = "https://github.com/shichenz1999/oss-taapp", branch = "main" }
+ta-assignment-jw = { git = "https://github.com/jw7914/oss-taapp/", branch = "root" }
 
 [tool.ruff]
 line-length = 130 # high for top level due to tests
@@ -65,6 +78,7 @@ mypy_path = [
     "src/kanban_client_adapter/src",
     "src/ticket_api/src",
     "src/trello_ticket_impl/src",
+    "src/chat_ticket_integration/src",
     "typings",
 ]
 ignore_missing_imports = false

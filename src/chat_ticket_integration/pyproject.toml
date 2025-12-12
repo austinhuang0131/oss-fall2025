@@ -1,0 +1,11 @@
+[project]
+name = "chat-ticket-integration"
+version = "0.1.0"
+description = "Integration between chat and ticket systems"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
