@@ -337,6 +337,12 @@ wheels = [
 name = "chat-ticket-integration"
 version = "0.1.0"
 source = { editable = "src/chat_ticket_integration" }
+dependencies = [
+    { name = "oss-apis" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "oss-apis", git = "https://github.com/ivanearisty/OSS-APIs.git" }]
 
 [[package]]
 name = "click"

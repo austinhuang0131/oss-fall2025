@@ -3,97 +3,178 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 
 import pytest
+from chat_api.src.chat_api import ChatInterface, Message
+from tickets_api.src.tickets_api import Ticket, TicketInterface, TicketStatus
 
 from chat_ticket_integration import ChatTicketIntegration
-from chat_ticket_integration.integration import ChatAPI, TicketAPI
 
 
-class MockChatAPI(ChatAPI):
-    """Mock chat API for testing."""
+class MockMessage(Message):
+    """Mock message for testing."""
+
+    def __init__(self, msg_id: str, content: str, sender_id: str = "test_sender") -> None:
+        """Initialize the mock message."""
+        self._id: str = msg_id
+        self._content: str = content
+        self._sender_id: str = sender_id
+
+    @property
+    def id(self) -> str:
+        """Return the ID of the message."""
+        return self._id
+
+    @property
+    def content(self) -> str:
+        """Return the content of the message."""
+        return self._content
+
+    @property
+    def sender_id(self) -> str:
+        """Return the sender ID of the message."""
+        return self._sender_id
+
+
+class MockChatInterface(ChatInterface):
+    """Mock chat interface for testing."""
 
     def __init__(self) -> None:  # noqa: D107
-        self.messages: list[dict[str, Any]] = []
+        self.messages: list[MockMessage] = []
+        self.sent_messages: list[tuple[str, str]] = []
 
-    def get_messages(self, channel_id: str, max_results: int = 10) -> list[dict[str, Any]]:
+    def get_messages(self, channel_id: str, limit: int = 20) -> list[Message]:
         """Return mock messages."""
-        return self.messages[:max_results]
+        return list(self.messages[:limit])  # type: ignore[return-value]
+
+    def send_message(self, channel_id: str, content: str) -> bool:
+        """Send a mock message."""
+        self.sent_messages.append((channel_id, content))
+        return True
+
+    def delete_message(self, channel_id: str, message_id: str) -> bool:
+        """Delete a specific message. Returns True if successful."""
+        self.messages = [m for m in self.messages if m.id != message_id]
+        return True
 
     def add_message(self, message_id: str, content: str) -> None:
-        """Add a mock message."""
-        self.messages.append({"id": message_id, "content": content})
+        """Add a mock message (helper method for tests)."""
+        self.messages.append(MockMessage(message_id, content))
 
 
-class MockTicketAPI(TicketAPI):
-    """Mock ticket API for testing."""
+class MockTicket(Ticket):
+    """Mock ticket for testing."""
+
+    def __init__(
+        self,
+        ticket_id: str,
+        title: str,
+        description: str,
+        status: TicketStatus,
+        assignee: str | None = None,
+    ) -> None:
+        """Initialize the mock ticket."""
+        self._id: str = ticket_id
+        self._title: str = title
+        self._description: str = description
+        self._status: TicketStatus = status
+        self._assignee: str | None = assignee
+
+    @property
+    def id(self) -> str:
+        """Return the ID of the ticket."""
+        return self._id
+
+    @property
+    def title(self) -> str:
+        """Return the title of the ticket."""
+        return self._title
+
+    @property
+    def description(self) -> str:
+        """Return the description of the ticket."""
+        return self._description
+
+    @property
+    def status(self) -> TicketStatus:
+        """Return the status of the ticket."""
+        return self._status
+
+    @property
+    def assignee(self) -> str | None:
+        """Return the assignee of the ticket."""
+        return self._assignee
+
+
+class MockTicketInterface(TicketInterface):
+    """Mock ticket interface for testing."""
 
     def __init__(self) -> None:  # noqa: D107
-        self.cards: dict[str, dict[str, Any]] = {}
-        self.lists: dict[str, dict[str, Any]] = {
-            "list1": {"id": "list1", "name": "To Do", "board_id": "board1"},
-        }
-        self.next_card_id = 1
+        self.tickets: dict[str, MockTicket] = {}
+        self.next_ticket_id: int = 1
 
-    async def create_card(self, list_id: str, name: str, description: str | None = None) -> dict[str, Any]:
-        """Create a mock card."""
-        card_id = f"card{self.next_card_id}"
-        self.next_card_id += 1
-        card = {"id": card_id, "name": name, "description": description, "list_id": list_id}
-        self.cards[card_id] = card
-        return card
+    def create_ticket(
+        self, title: str, description: str, assignee: str | None = None,
+    ) -> Ticket:
+        """Create a mock ticket."""
+        ticket_id = f"ticket{self.next_ticket_id}"
+        self.next_ticket_id += 1
+        ticket = MockTicket(ticket_id, title, description, TicketStatus.OPEN, assignee)
+        self.tickets[ticket_id] = ticket
+        return ticket
 
-    async def get_card(self, card_id: str) -> dict[str, Any]:
-        """Get a mock card."""
-        if card_id not in self.cards:
-            msg = f"Card {card_id} not found"
-            raise ValueError(msg)
-        return self.cards[card_id]
+    def get_ticket(self, ticket_id: str) -> Ticket | None:
+        """Get a mock ticket."""
+        return self.tickets.get(ticket_id)
 
-    async def update_card(
+    def search_tickets(
+        self, query: str | None = None, status: TicketStatus | None = None,
+    ) -> list[Ticket]:
+        """Search for mock tickets."""
+        results: list[Ticket] = list(self.tickets.values())
+        if status is not None:
+            results = [t for t in results if t.status == status]
+        if query is not None:
+            results = [
+                t for t in results
+                if query.lower() in t.title.lower() or query.lower() in t.description.lower()
+            ]
+        return results
+
+    def update_ticket(
         self,
-        card_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        list_id: str | None = None,
-    ) -> dict[str, Any]:
-        """Update a mock card."""
-        if card_id not in self.cards:
-            msg = f"Card {card_id} not found"
+        ticket_id: str,
+        status: TicketStatus | None = None,
+        title: str | None = None,
+    ) -> Ticket:
+        """Update a mock ticket."""
+        ticket = self.tickets.get(ticket_id)
+        if ticket is None:
+            msg = f"Ticket {ticket_id} not found"
             raise ValueError(msg)
 
-        card = self.cards[card_id]
-        if name is not None:
-            card["name"] = name
-        if description is not None:
-            card["description"] = description
-        if list_id is not None:
-            card["list_id"] = list_id
+        # Create a new ticket with updated values
+        new_title = title if title is not None else ticket.title
+        new_status = status if status is not None else ticket.status
+        updated_ticket = MockTicket(
+            ticket_id, new_title, ticket.description, new_status, ticket.assignee,
+        )
+        self.tickets[ticket_id] = updated_ticket
+        return updated_ticket
 
-        return card
-
-    async def delete_card(self, card_id: str) -> bool:
-        """Delete a mock card."""
-        if card_id in self.cards:
-            del self.cards[card_id]
+    def delete_ticket(self, ticket_id: str) -> bool:
+        """Delete a mock ticket."""
+        if ticket_id in self.tickets:
+            del self.tickets[ticket_id]
             return True
         return False
-
-    async def get_cards(self, list_id: str) -> list[dict[str, Any]]:
-        """Get all cards in a list."""
-        return [card for card in self.cards.values() if card["list_id"] == list_id]
-
-    async def get_lists(self, board_id: str) -> list[dict[str, Any]]:
-        """Get all lists in a board."""
-        return [lst for lst in self.lists.values() if lst["board_id"] == board_id]
 
 
 @pytest.mark.asyncio
 async def test_create_card_command() -> None:
-    """Test creating a card via chat command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    """Test creating a ticket via chat command."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -107,17 +188,17 @@ async def test_create_card_command() -> None:
 
     await integration._poll_and_process()
 
-    assert len(ticket_api.cards) == 1
-    card = next(iter(ticket_api.cards.values()))
-    assert card["name"] == "Test Card"
-    assert card["description"] is None
+    assert len(ticket_api.tickets) == 1
+    ticket = next(iter(ticket_api.tickets.values()))
+    assert ticket.title == "Test Card"
+    assert ticket.description == ""
 
 
 @pytest.mark.asyncio
 async def test_create_card_with_description() -> None:
-    """Test creating a card with description."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    """Test creating a ticket with description."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -131,17 +212,17 @@ async def test_create_card_with_description() -> None:
 
     await integration._poll_and_process()
 
-    assert len(ticket_api.cards) == 1
-    card = next(iter(ticket_api.cards.values()))
-    assert card["name"] == "Test Card"
-    assert card["description"] == "This is a test description"
+    assert len(ticket_api.tickets) == 1
+    ticket = next(iter(ticket_api.tickets.values()))
+    assert ticket.title == "Test Card"
+    assert ticket.description == "This is a test description"
 
 
 @pytest.mark.asyncio
 async def test_update_card_command() -> None:
-    """Test updating a card via chat command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    """Test updating a ticket via chat command."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -151,24 +232,25 @@ async def test_update_card_command() -> None:
         poll_interval=0.1,
     )
 
-    # Create a card first
-    card = await ticket_api.create_card("list1", "Original Name")
-    card_id = card["id"]
+    # Create a ticket first
+    ticket = ticket_api.create_ticket("Original Name", "Description")
+    ticket_id = ticket.id
 
-    # Update the card
-    chat_api.add_message("msg1", f"!update {card_id} --name Updated Name")
+    # Update the ticket
+    chat_api.add_message("msg1", f"!update {ticket_id} --name Updated Name")
 
     await integration._poll_and_process()
 
-    updated_card = await ticket_api.get_card(card_id)
-    assert updated_card["name"] == "Updated Name"
+    updated_ticket = ticket_api.get_ticket(ticket_id)
+    assert updated_ticket is not None
+    assert updated_ticket.title == "Updated Name"
 
 
 @pytest.mark.asyncio
 async def test_delete_card_command() -> None:
-    """Test deleting a card via chat command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    """Test deleting a ticket via chat command."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -178,23 +260,23 @@ async def test_delete_card_command() -> None:
         poll_interval=0.1,
     )
 
-    # Create a card first
-    card = await ticket_api.create_card("list1", "Test Card")
-    card_id = card["id"]
+    # Create a ticket first
+    ticket = ticket_api.create_ticket("Test Card", "Description")
+    ticket_id = ticket.id
 
-    # Delete the card
-    chat_api.add_message("msg1", f"!delete {card_id}")
+    # Delete the ticket
+    chat_api.add_message("msg1", f"!delete {ticket_id}")
 
     await integration._poll_and_process()
 
-    assert card_id not in ticket_api.cards
+    assert ticket_id not in ticket_api.tickets
 
 
 @pytest.mark.asyncio
 async def test_get_card_command() -> None:
-    """Test getting a card via chat command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    """Test getting a ticket via chat command."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -204,91 +286,24 @@ async def test_get_card_command() -> None:
         poll_interval=0.1,
     )
 
-    # Create a card first
-    card = await ticket_api.create_card("list1", "Test Card")
-    card_id = card["id"]
+    # Create a ticket first
+    ticket = ticket_api.create_ticket("Test Card", "Description")
+    ticket_id = ticket.id
 
-    # Get the card
-    chat_api.add_message("msg1", f"!get {card_id}")
-
-    await integration._poll_and_process()
-
-    # Command should execute without error
-
-
-@pytest.mark.asyncio
-async def test_list_command() -> None:
-    """Test listing via chat command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
-
-    integration = ChatTicketIntegration(
-        chat_api=chat_api,
-        ticket_api=ticket_api,
-        channel_id="channel1",
-        board_id="board1",
-        poll_interval=0.1,
-    )
-
-    # List all lists
-    chat_api.add_message("msg1", "!list")
+    # Get the ticket
+    chat_api.add_message("msg1", f"!get {ticket_id}")
 
     await integration._poll_and_process()
 
-    # Command should execute without error
-
-
-@pytest.mark.asyncio
-async def test_duplicate_message_not_processed() -> None:
-    """Test that duplicate messages are not processed."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
-
-    integration = ChatTicketIntegration(
-        chat_api=chat_api,
-        ticket_api=ticket_api,
-        channel_id="channel1",
-        board_id="board1",
-        poll_interval=0.1,
-    )
-
-    chat_api.add_message("msg1", "!create Test Card")
-
-    # Process the same message twice
-    await integration._poll_and_process()
-    await integration._poll_and_process()
-
-    # Should only create one card
-    assert len(ticket_api.cards) == 1
-
-
-@pytest.mark.asyncio
-async def test_invalid_command_ignored() -> None:
-    """Test that invalid commands are ignored."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
-
-    integration = ChatTicketIntegration(
-        chat_api=chat_api,
-        ticket_api=ticket_api,
-        channel_id="channel1",
-        board_id="board1",
-        poll_interval=0.1,
-    )
-
-    chat_api.add_message("msg1", "This is not a command")
-
-    await integration._poll_and_process()
-
-    # Should not create any cards
-    assert len(ticket_api.cards) == 0
+    # Command should execute without error and send a message
+    assert len(chat_api.sent_messages) == 1
 
 
 @pytest.mark.asyncio
 async def test_help_command() -> None:
     """Test help command."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -304,10 +319,10 @@ async def test_help_command() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_cards_in_specific_list() -> None:
-    """Test listing cards in a specific list."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+async def test_duplicate_message_not_processed() -> None:
+    """Test that duplicate messages are not processed."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -317,21 +332,21 @@ async def test_list_cards_in_specific_list() -> None:
         poll_interval=0.1,
     )
 
-    # Create cards
-    await ticket_api.create_card("list1", "Card 1")
-    await ticket_api.create_card("list1", "Card 2")
+    chat_api.add_message("msg1", "!create Test Card")
 
-    # List cards in specific list
-    chat_api.add_message("msg1", "!list list1")
-
+    # Process the same message twice
     await integration._poll_and_process()
+    await integration._poll_and_process()
+
+    # Should only create one ticket
+    assert len(ticket_api.tickets) == 1
 
 
 @pytest.mark.asyncio
-async def test_update_card_multiple_fields() -> None:
-    """Test updating multiple fields of a card."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+async def test_invalid_command_ignored() -> None:
+    """Test that invalid commands are ignored."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -341,25 +356,100 @@ async def test_update_card_multiple_fields() -> None:
         poll_interval=0.1,
     )
 
-    # Create a card
-    card = await ticket_api.create_card("list1", "Original Name", "Original Description")
-    card_id = card["id"]
-
-    # Update multiple fields
-    chat_api.add_message("msg1", f"!update {card_id} --name New Name --desc New Description")
+    chat_api.add_message("msg1", "This is not a command")
 
     await integration._poll_and_process()
 
-    updated_card = await ticket_api.get_card(card_id)
-    assert updated_card["name"] == "New Name"
-    assert updated_card["description"] == "New Description"
+    # Should not create any tickets
+    assert len(ticket_api.tickets) == 0
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_status() -> None:
+    """Test updating ticket status via chat command."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
+
+    integration = ChatTicketIntegration(
+        chat_api=chat_api,
+        ticket_api=ticket_api,
+        channel_id="channel1",
+        board_id="board1",
+        poll_interval=0.1,
+    )
+
+    # Create a ticket first
+    ticket = ticket_api.create_ticket("Test Ticket", "Description")
+    ticket_id = ticket.id
+
+    # Update the ticket status
+    chat_api.add_message("msg1", f"!update {ticket_id} --status closed")
+
+    await integration._poll_and_process()
+
+    updated_ticket = ticket_api.get_ticket(ticket_id)
+    assert updated_ticket is not None
+    assert updated_ticket.status == TicketStatus.CLOSED
+
+
+@pytest.mark.asyncio
+async def test_get_nonexistent_ticket() -> None:
+    """Test getting a nonexistent ticket."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
+
+    integration = ChatTicketIntegration(
+        chat_api=chat_api,
+        ticket_api=ticket_api,
+        channel_id="channel1",
+        board_id="board1",
+        poll_interval=0.1,
+    )
+
+    # Try to get a nonexistent ticket
+    chat_api.add_message("msg1", "!get nonexistent")
+
+    await integration._poll_and_process()
+
+    # Should send a not found message
+    assert len(chat_api.sent_messages) == 1
+    assert "not found" in chat_api.sent_messages[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_multiple_fields() -> None:
+    """Test updating multiple fields of a ticket."""
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
+
+    integration = ChatTicketIntegration(
+        chat_api=chat_api,
+        ticket_api=ticket_api,
+        channel_id="channel1",
+        board_id="board1",
+        poll_interval=0.1,
+    )
+
+    # Create a ticket
+    ticket = ticket_api.create_ticket("Original Name", "Original Description")
+    ticket_id = ticket.id
+
+    # Update multiple fields (name and status)
+    chat_api.add_message("msg1", f"!update {ticket_id} --name New Name --status in progress")
+
+    await integration._poll_and_process()
+
+    updated_ticket = ticket_api.get_ticket(ticket_id)
+    assert updated_ticket is not None
+    assert updated_ticket.title == "New Name"
+    assert updated_ticket.status == TicketStatus.IN_PROGRESS
 
 
 @pytest.mark.asyncio
 async def test_start_stop() -> None:
     """Test starting and stopping the integration."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -387,8 +477,8 @@ async def test_start_stop() -> None:
 @pytest.mark.asyncio
 async def test_message_with_object_attributes() -> None:
     """Test processing messages with object attributes."""
-    chat_api = MockChatAPI()
-    ticket_api = MockTicketAPI()
+    chat_api = MockChatInterface()
+    ticket_api = MockTicketInterface()
 
     integration = ChatTicketIntegration(
         chat_api=chat_api,
@@ -398,15 +488,10 @@ async def test_message_with_object_attributes() -> None:
         poll_interval=0.1,
     )
 
-    # Create a message with attributes
-    class Message:
-        def __init__(self, msg_id: str, content: str) -> None:
-            self.id = msg_id
-            self.content = content
-
-    msg = Message(msg_id="msg1", content="!create Test Card")
+    # MockMessage already has the right attributes
+    msg = MockMessage(msg_id="msg1", content="!create Test Card")
     chat_api.messages = [msg]
 
     await integration._poll_and_process()
 
-    assert len(ticket_api.cards) == 1
+    assert len(ticket_api.tickets) == 1
