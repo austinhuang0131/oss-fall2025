@@ -38,6 +38,9 @@ members = [
   "src/chat_ticket_integration",
 ]
 
+[tool.uv.sources]
+discord-client-impl = { git = "https://github.com/koitu/oss-taapp.git", subdirectory = "src/discord_client_impl", rev = "hw3-alignment" }
+
 
 
 [tool.ruff]
@@ -119,4 +122,9 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
+]
+
+[dependency-groups]
+dev = [
+    "discord-client-impl",
 ]

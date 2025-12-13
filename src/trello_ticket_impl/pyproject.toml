@@ -8,6 +8,7 @@ dependencies = [
     "oss-apis",
     "aiohttp>=3.11.18",
     "trello-client-impl",
+    "nest-asyncio>=1.6.0",
 ]
 
 [tool.uv.sources]

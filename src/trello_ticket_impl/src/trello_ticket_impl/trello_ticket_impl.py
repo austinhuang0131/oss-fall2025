@@ -7,6 +7,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
+import nest_asyncio
 from tickets_api.src.tickets_api import TicketInterface, TicketStatus  # type: ignore[import-untyped]
 from trello_client_impl.oauth import TrelloOAuthHandler
 
@@ -45,6 +46,9 @@ class TrelloTicketClientImpl(TicketInterface):
             board_id: Trello board ID to use for tickets. If not provided, a new board will be created.
 
         """
+        # Apply nest_asyncio to allow nested event loops
+        nest_asyncio.apply()
+        
         self.token = token or ""
         self.oauth_handler = oauth_handler or TrelloOAuthHandler.from_env()
         self.base_url = "https://api.trello.com/1"
@@ -309,12 +313,15 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        try:
-            _ = self._make_request("DELETE", f"/cards/{ticket_id}")
-        except TrelloAPIError:
-            return False
-        else:
-            return True
+        async def _delete_async() -> bool:
+            try:
+                _ = await self._make_request("DELETE", f"/cards/{ticket_id}")
+            except TrelloAPIError:
+                return False
+            else:
+                return True
+
+        return asyncio.run(_delete_async())
 
     def get_ticket(self, ticket_id: str) -> Ticket:
         """Get a specific ticket by ID.
@@ -383,21 +390,26 @@ class TrelloTicketClientImpl(TicketInterface):
 
         params = {
             "query": query,
-            "idBoards": self._board_id or "",
-            "modelTypes": "cards",
+            "id_boards": self._board_id or "",
+            "model_types": "cards",
             "cards_limit": "1000",
         }
 
         # Get all cards on the board
         data = await self._make_request("GET", "/search", params)
 
-        if not isinstance(data, list):
+        if not isinstance(data, dict):
+            msg = "API did not return a dict for search."
+            raise TrelloAPIError(msg)
+        
+        cards = data.get("cards", [])
+        if not isinstance(cards, list):
             msg = "API did not return a list of cards."
             raise TrelloAPIError(msg)
 
         tickets: list[Ticket] = []
         list_id = self._status_to_list(status) if status else None
-        for card_data in data:
+        for card_data in cards:
 
             # Apply status filter
             if list_id is not None and card_data["idList"] != list_id:
