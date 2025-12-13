@@ -564,7 +564,7 @@ class TestTrelloTicketClientImpl:
                             "idList": "list_done",
                             "idMembers": [],
                         },
-                    ]
+                    ],
                 }
             return []
 
