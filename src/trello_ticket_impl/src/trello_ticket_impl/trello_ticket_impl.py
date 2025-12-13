@@ -48,7 +48,7 @@ class TrelloTicketClientImpl(TicketInterface):
         """
         # Apply nest_asyncio to allow nested event loops
         nest_asyncio.apply()
-        
+
         self.token = token or ""
         self.oauth_handler = oauth_handler or TrelloOAuthHandler.from_env()
         self.base_url = "https://api.trello.com/1"
@@ -401,7 +401,7 @@ class TrelloTicketClientImpl(TicketInterface):
         if not isinstance(data, dict):
             msg = "API did not return a dict for search."
             raise TrelloAPIError(msg)
-        
+
         cards = data.get("cards", [])
         if not isinstance(cards, list):
             msg = "API did not return a list of cards."

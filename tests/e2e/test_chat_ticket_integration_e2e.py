@@ -133,7 +133,7 @@ async def test_e2e_full_ticket_lifecycle(
         "!create E2E Lifecycle Test --desc Testing full ticket lifecycle",
     )
     await asyncio.sleep(2)
-    await integration._poll_and_process()  # noqa: SLF001
+    await integration._poll_and_process()
     await asyncio.sleep(2)
 
     # Find the created ticket
@@ -149,7 +149,7 @@ async def test_e2e_full_ticket_lifecycle(
             f"!update {ticket_id} --name E2E Lifecycle Test Updated",
         )
         await asyncio.sleep(2)
-        await integration._poll_and_process()  # noqa: SLF001
+        await integration._poll_and_process()
         await asyncio.sleep(2)
 
         updated_ticket = trello_client.get_ticket(ticket_id)
@@ -162,7 +162,7 @@ async def test_e2e_full_ticket_lifecycle(
             f"!update {ticket_id} --status in progress",
         )
         await asyncio.sleep(2)
-        await integration._poll_and_process()  # noqa: SLF001
+        await integration._poll_and_process()
         await asyncio.sleep(2)
 
         updated_ticket = trello_client.get_ticket(ticket_id)
@@ -173,7 +173,7 @@ async def test_e2e_full_ticket_lifecycle(
         initial_messages = len(discord_client.get_messages(channel_id, limit=50))
         _ = discord_client.send_message(channel_id, f"!get {ticket_id}")
         await asyncio.sleep(2)
-        await integration._poll_and_process()  # noqa: SLF001
+        await integration._poll_and_process()
         await asyncio.sleep(2)
 
         # Verify a response message was sent (increased message count)
@@ -186,7 +186,7 @@ async def test_e2e_full_ticket_lifecycle(
             f"!update {ticket_id} --status closed",
         )
         await asyncio.sleep(2)
-        await integration._poll_and_process()  # noqa: SLF001
+        await integration._poll_and_process()
         await asyncio.sleep(2)
 
         updated_ticket = trello_client.get_ticket(ticket_id)
@@ -196,7 +196,7 @@ async def test_e2e_full_ticket_lifecycle(
         # Step 6: Delete ticket
         _ = discord_client.send_message(channel_id, f"!delete {ticket_id}")
         await asyncio.sleep(2)
-        await integration._poll_and_process()  # noqa: SLF001
+        await integration._poll_and_process()
         await asyncio.sleep(2)
 
         # Verify ticket was deleted
@@ -223,7 +223,7 @@ async def test_e2e_help_command(
     await asyncio.sleep(2)
 
     # Process messages
-    await integration._poll_and_process()  # noqa: SLF001
+    await integration._poll_and_process()
 
     # If we get here without exception, the test passes
 
@@ -248,7 +248,7 @@ async def test_e2e_invalid_command_ignored(
     await asyncio.sleep(2)
 
     # Process messages
-    await integration._poll_and_process()  # noqa: SLF001
+    await integration._poll_and_process()
     await asyncio.sleep(2)
 
     # Verify no new tickets were created
@@ -273,9 +273,9 @@ async def test_e2e_duplicate_message_not_processed(
     await asyncio.sleep(2)
 
     # Process the same messages twice
-    await integration._poll_and_process()  # noqa: SLF001
+    await integration._poll_and_process()
     await asyncio.sleep(2)
-    await integration._poll_and_process()  # noqa: SLF001
+    await integration._poll_and_process()
     await asyncio.sleep(2)
 
     # Should only create one ticket
