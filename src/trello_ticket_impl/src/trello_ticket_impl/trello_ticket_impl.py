@@ -7,7 +7,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
-import nest_asyncio
+import nest_asyncio  # type: ignore[import-untyped]
 from tickets_api.src.tickets_api import TicketInterface, TicketStatus  # type: ignore[import-untyped]
 from trello_client_impl.oauth import TrelloOAuthHandler
 
