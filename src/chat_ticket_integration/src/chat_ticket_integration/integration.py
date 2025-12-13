@@ -81,7 +81,7 @@ class ChatTicketIntegration:
     async def _poll_and_process(self) -> None:
         """Poll messages and process commands."""
         try:
-            messages = self.chat_api.get_messages(self.channel_id, limit=20)
+            messages = self.chat_api.get_messages(self.channel_id, limit=2)
 
             for message in messages:
                 message_id = message.id
