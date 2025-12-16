@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from ai_chat_ticket_integration import AiChatTicketIntegration
@@ -195,7 +196,7 @@ def create_integration() -> AiChatTicketIntegration:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # noqa: ARG001
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Lifespan context manager for startup and shutdown."""
     global integration_instance, integration_task
 
