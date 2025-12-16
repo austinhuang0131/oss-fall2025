@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from opentelemetry.metrics import Histogram
-from opentelemetry.metrics._internal.instrument import Counter
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +19,8 @@ except ImportError:
 if TYPE_CHECKING:
     from ai_api.src.ai_api import AIInterface
     from chat_api.src.chat_api import ChatInterface, Message
+    from opentelemetry.metrics import Histogram
+    from opentelemetry.metrics._internal.instrument import Counter
     from tickets_api.src.tickets_api import Ticket, TicketInterface
 
 logger = logging.getLogger(__name__)
