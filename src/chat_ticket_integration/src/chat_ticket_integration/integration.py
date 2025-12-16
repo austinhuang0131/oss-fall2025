@@ -28,7 +28,6 @@ class ChatTicketIntegration:
         chat_api: ChatInterface,
         ticket_api: TicketInterface,
         channel_id: str,
-        board_id: str,
         poll_interval: float = 1.0,
     ) -> None:
         """Initialize the integration.
@@ -37,17 +36,16 @@ class ChatTicketIntegration:
             chat_api: Chat API implementation
             ticket_api: Ticket API implementation
             channel_id: Fixed channel ID for chat operations
-            board_id: Fixed board ID for ticket operations
             poll_interval: Polling interval in seconds (default: 1.0)
 
         """
         self.chat_api = chat_api
         self.ticket_api = ticket_api
         self.channel_id = channel_id
-        self.board_id = board_id
         self.poll_interval = poll_interval
         self._running = False
-        self._processed_message_ids: set[str] = set()
+        # assume message IDs are ordered and thus comparable
+        self._last_process_message_id = ""
 
         # Command patterns
         self._command_patterns = {
@@ -81,15 +79,16 @@ class ChatTicketIntegration:
     async def _poll_and_process(self) -> None:
         """Poll messages and process commands."""
         try:
-            messages = self.chat_api.get_messages(self.channel_id, limit=2)
+            # Run the blocking get_messages call in a thread
+            messages = await asyncio.to_thread(self.chat_api.get_messages, self.channel_id, limit=2)
 
             for message in messages:
                 message_id = message.id
 
-                if message_id in self._processed_message_ids:
+                if message_id <= self._last_process_message_id:
                     continue
 
-                self._processed_message_ids.add(message_id)
+                self._last_process_message_id = message_id
 
                 content = message.content
                 if content:
@@ -123,7 +122,8 @@ class ChatTicketIntegration:
 
         card = self.ticket_api.create_ticket(name, description, None)
         _ = self.chat_api.send_message(
-            self.channel_id, f"Created ticket with ID {card.id}.\n\n{await self._format_ticket_details(card)}",
+            self.channel_id,
+            f"Created ticket with ID {card.id}.\n\n{await self._format_ticket_details(card)}" if card else "Card not found!",
         )
         logger.info("Created card: %s", card)
 
@@ -150,7 +150,7 @@ class ChatTicketIntegration:
 
         card = self.ticket_api.update_ticket(card_id, status, name)
         _ = self.chat_api.send_message(
-            self.channel_id, f"Created ticket with ID {card.id}.\n\n{await self._format_ticket_details(card)}",
+            self.channel_id, f"Updated ticket with ID {card.id}.\n\n{await self._format_ticket_details(card)}",
         )
         logger.info("Updated card: %s", card)
 
@@ -184,7 +184,10 @@ Available commands:
 - !get <card_id>: Get ticket details
 - !help: Show this help message
         """
-        logger.info("Help: %s", help_text.strip())
+        _ = self.chat_api.send_message(
+            self.channel_id,
+            help_text.strip(),
+        )
 
     async def _format_ticket_details(self, ticket: Ticket) -> str:
         """Format ticket details for display."""

@@ -69,12 +69,10 @@ def integration(
     discord_channel_id: str,
 ) -> ChatTicketIntegration:
     """Create a chat-ticket integration instance."""
-    board_id = os.getenv("TEST_TRELLO_BOARD_ID")
     return ChatTicketIntegration(
         chat_api=discord_client,  # type: ignore[arg-type]
         ticket_api=trello_client,
         channel_id=discord_channel_id,
-        board_id=board_id if board_id else "",  # type: ignore[arg-type]
         poll_interval=1.0,
     )
 
@@ -95,13 +93,13 @@ async def test_e2e_create_ticket_from_discord(
     )
 
     # Wait a bit for the message to be sent
-    await asyncio.sleep(10)
+    await asyncio.sleep(2)
 
     # Process messages
     await integration._poll_and_process()
 
     # Wait for ticket creation
-    await asyncio.sleep(10)
+    await asyncio.sleep(2)
 
     # Search for the created ticket
     tickets = trello_client.search_tickets(query="E2E Test Ticket")

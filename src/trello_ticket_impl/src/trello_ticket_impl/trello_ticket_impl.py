@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import nest_asyncio  # type: ignore[import-untyped]
-from tickets_api.src.tickets_api import TicketInterface, TicketStatus  # type: ignore[import-untyped]
+from tickets_api.src.tickets_api import TicketInterface, TicketStatus
 from trello_client_impl.oauth import TrelloOAuthHandler
 
 from .exceptions import (
@@ -19,7 +19,7 @@ from .exceptions import (
 from .models import TrelloTicket
 
 if TYPE_CHECKING:
-    from tickets_api.src.tickets_api import Ticket  # type: ignore[import-untyped]
+    from tickets_api.src.tickets_api import Ticket
 
 
 class TrelloTicketClientImpl(TicketInterface):

@@ -180,7 +180,6 @@ async def test_create_card_command() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -204,7 +203,6 @@ async def test_create_card_with_description() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -228,7 +226,6 @@ async def test_update_card_command() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -256,7 +253,6 @@ async def test_delete_card_command() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -282,7 +278,6 @@ async def test_get_card_command() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -309,7 +304,6 @@ async def test_help_command() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -328,7 +322,6 @@ async def test_duplicate_message_not_processed() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -352,7 +345,6 @@ async def test_invalid_command_ignored() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -374,7 +366,6 @@ async def test_update_ticket_status() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -402,7 +393,6 @@ async def test_get_nonexistent_ticket() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -426,7 +416,6 @@ async def test_update_ticket_multiple_fields() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
@@ -455,7 +444,6 @@ async def test_start_stop() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.01,
     )
 
@@ -484,7 +472,6 @@ async def test_message_with_object_attributes() -> None:
         chat_api=chat_api,
         ticket_api=ticket_api,
         channel_id="channel1",
-        board_id="board1",
         poll_interval=0.1,
     )
 
