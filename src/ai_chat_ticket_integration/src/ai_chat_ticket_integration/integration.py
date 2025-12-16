@@ -425,7 +425,7 @@ class AiChatTicketIntegration:
                 self.channel_id, f"Failed to retrieve ticket {ticket_id}.",
             )
 
-    def _parse_ticket_status(self, status_raw: Any) -> TicketStatus | None:
+    def _parse_ticket_status(self, status_raw: str | None) -> TicketStatus | None:
         """Parse status string to TicketStatus enum."""
         if not status_raw:
             return None

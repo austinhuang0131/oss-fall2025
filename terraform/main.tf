@@ -105,7 +105,7 @@ resource "google_artifact_registry_repository" "docker_repo" {
 # Secret Manager secrets for sensitive data
 resource "google_secret_manager_secret" "discord_token" {
   secret_id = "discord-token"
-  
+
   replication {
     auto {}
   }
@@ -118,7 +118,7 @@ resource "google_secret_manager_secret_version" "discord_token" {
 
 resource "google_secret_manager_secret" "trello_token" {
   secret_id = "trello-token"
-  
+
   replication {
     auto {}
   }
@@ -131,7 +131,7 @@ resource "google_secret_manager_secret_version" "trello_token" {
 
 resource "google_secret_manager_secret" "openai_api_key" {
   secret_id = "openai-api-key"
-  
+
   replication {
     auto {}
   }
@@ -175,24 +175,24 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
 
   template {
     service_account = google_service_account.cloud_run_sa.email
-    
+
     containers {
       image = var.image
-      
+
       ports {
         container_port = 8080
       }
-      
+
       env {
         name  = "PORT"
         value = "8080"
       }
-      
+
       env {
         name  = "ENVIRONMENT"
         value = var.environment
       }
-      
+
       env {
         name = "DISCORD_ACCESS_TOKEN"
         value_source {
@@ -202,12 +202,12 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           }
         }
       }
-      
+
       env {
         name  = "TEST_DISCORD_CHANNEL_ID"
         value = var.discord_channel_id
       }
-      
+
       env {
         name = "TRELLO_TOKEN"
         value_source {
@@ -217,12 +217,12 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           }
         }
       }
-      
+
       env {
         name  = "TEST_TRELLO_BOARD_ID"
         value = var.trello_board_id
       }
-      
+
       env {
         name = "TEST_OPENAI_API_KEY"
         value_source {
@@ -232,17 +232,17 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           }
         }
       }
-      
+
       env {
         name  = "POLL_INTERVAL"
         value = var.poll_interval
       }
-      
+
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
         value = "http://localhost:4317"
       }
-      
+
       resources {
         limits = {
           cpu    = "1"
@@ -251,7 +251,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
         cpu_idle = true
       }
     }
-    
+
     scaling {
       min_instance_count = 1
       max_instance_count = 5

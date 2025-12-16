@@ -425,3 +425,155 @@ class TestProcessCommand:
         mock_chat_api.send_message.assert_called_once()
         call_args = mock_chat_api.send_message.call_args[0]
         assert "couldn't understand" in call_args[1].lower()
+
+
+class TestHandleSearchNl:
+    """Tests for natural language search handler."""
+
+    @pytest.mark.asyncio
+    async def test_search_with_query_and_status(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test searching tickets with query and status."""
+        mock_ticket1 = Mock()
+        mock_ticket1.id = "ticket-1"
+        mock_ticket1.title = "Login bug"
+        mock_ticket1.description = "Users can't login"
+        mock_ticket1.status = TicketStatus.OPEN
+
+        mock_ticket2 = Mock()
+        mock_ticket2.id = "ticket-2"
+        mock_ticket2.title = "Login issue"
+        mock_ticket2.description = "Password reset broken"
+        mock_ticket2.status = TicketStatus.OPEN
+
+        mock_ticket_api.search_tickets = Mock(return_value=[mock_ticket1, mock_ticket2])
+
+        await integration._handle_search({"query": "login", "status": "open"})
+
+        mock_ticket_api.search_tickets.assert_called_once_with(
+            query="login",
+            status=TicketStatus.OPEN,
+        )
+        assert mock_chat_api.send_message.called
+        call_args = mock_chat_api.send_message.call_args[0]
+        assert "Found 2 ticket(s)" in call_args[1]
+
+    @pytest.mark.asyncio
+    async def test_search_with_query_only(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test searching tickets with only a query."""
+        mock_ticket = Mock()
+        mock_ticket.id = "ticket-1"
+        mock_ticket.title = "Test ticket"
+        mock_ticket.description = "Test description"
+        mock_ticket.status = TicketStatus.OPEN
+
+        mock_ticket_api.search_tickets = Mock(return_value=[mock_ticket])
+
+        await integration._handle_search({"query": "test"})
+
+        mock_ticket_api.search_tickets.assert_called_once_with(query="test", status=None)
+        assert mock_chat_api.send_message.called
+
+    @pytest.mark.asyncio
+    async def test_search_no_results(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test searching with no results."""
+        mock_ticket_api.search_tickets = Mock(return_value=[])
+
+        await integration._handle_search({"query": "nonexistent"})
+
+        mock_ticket_api.search_tickets.assert_called_once()
+        assert mock_chat_api.send_message.called
+        call_args = mock_chat_api.send_message.call_args[0]
+        assert "No tickets found" in call_args[1]
+
+    @pytest.mark.asyncio
+    async def test_search_invalid_status(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test searching with invalid status."""
+        await integration._handle_search({"status": "invalid"})
+
+        assert mock_chat_api.send_message.called
+        call_args = mock_chat_api.send_message.call_args[0]
+        assert "Invalid status" in call_args[1]
+
+    @pytest.mark.asyncio
+    async def test_search_not_supported(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test search when ticket API doesn't support it."""
+        delattr(mock_ticket_api, "search_tickets")
+
+        await integration._handle_search({"query": "test"})
+
+        assert mock_chat_api.send_message.called
+        call_args = mock_chat_api.send_message.call_args[0]
+        assert "not available" in call_args[1]
+
+    @pytest.mark.asyncio
+    async def test_search_with_many_results(
+        self, integration: AiChatTicketIntegration, mock_ticket_api: Mock, mock_chat_api: Mock,
+    ) -> None:
+        """Test searching returns more than 10 tickets."""
+        mock_tickets = []
+        for i in range(15):
+            mock_ticket = Mock()
+            mock_ticket.id = f"ticket-{i}"
+            mock_ticket.title = f"Ticket {i}"
+            mock_ticket.description = "Description"
+            mock_ticket.status = TicketStatus.OPEN
+            mock_tickets.append(mock_ticket)
+
+        mock_ticket_api.search_tickets = Mock(return_value=mock_tickets)
+
+        await integration._handle_search({"query": "test"})
+
+        assert mock_chat_api.send_message.called
+        call_args = mock_chat_api.send_message.call_args[0]
+        assert "Found 15 ticket(s)" in call_args[1]
+        assert "5 more tickets" in call_args[1]
+
+
+class TestHelperMethods:
+    """Tests for helper methods."""
+
+    def test_parse_ticket_status_valid(self, integration: AiChatTicketIntegration) -> None:
+        """Test parsing valid status strings."""
+        assert integration._parse_ticket_status("open") == TicketStatus.OPEN
+        assert integration._parse_ticket_status("OPEN") == TicketStatus.OPEN
+        assert integration._parse_ticket_status("in progress") == TicketStatus.IN_PROGRESS
+        assert integration._parse_ticket_status("in_progress") == TicketStatus.IN_PROGRESS
+        assert integration._parse_ticket_status("closed") == TicketStatus.CLOSED
+
+    def test_parse_ticket_status_invalid(self, integration: AiChatTicketIntegration) -> None:
+        """Test parsing invalid status strings."""
+        assert integration._parse_ticket_status("invalid") is None
+        assert integration._parse_ticket_status("") is None
+        assert integration._parse_ticket_status(None) is None
+
+    def test_format_search_results(self, integration: AiChatTicketIntegration) -> None:
+        """Test formatting search results."""
+        mock_ticket1 = Mock()
+        mock_ticket1.id = "1"
+        mock_ticket1.title = "Ticket 1"
+        mock_ticket1.description = "Short desc"
+        mock_ticket1.status = TicketStatus.OPEN
+
+        mock_ticket2 = Mock()
+        mock_ticket2.id = "2"
+        mock_ticket2.title = "Ticket 2"
+        mock_ticket2.description = "A" * 100  # Long description
+        mock_ticket2.status = TicketStatus.CLOSED
+
+        result = integration._format_search_results([mock_ticket1, mock_ticket2])
+
+        assert "Found 2 ticket(s)" in result
+        assert "Ticket 1" in result
+        assert "Ticket 2" in result
+        assert "Short desc" in result
+        assert "..." in result  # Long description truncated
