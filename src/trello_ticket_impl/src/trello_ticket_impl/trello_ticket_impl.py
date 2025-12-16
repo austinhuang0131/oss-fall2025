@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
-import nest_asyncio  # type: ignore[import-untyped]
 from tickets_api.src.tickets_api import TicketInterface, TicketStatus
 from trello_client_impl.oauth import TrelloOAuthHandler
 
@@ -19,7 +19,25 @@ from .exceptions import (
 from .models import TrelloTicket
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
     from tickets_api.src.tickets_api import Ticket
+
+T = TypeVar("T")
+
+
+def _run_async(coro: Coroutine[Any, Any, T]) -> T:
+    """Run an async coroutine, using existing loop if available."""
+    try:
+        _ = asyncio.get_running_loop()
+    except RuntimeError:
+        # No loop running, use asyncio.run
+        return asyncio.run(coro)
+    else:
+        # Loop is running, create a task and wait for it
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
 
 
 class TrelloTicketClientImpl(TicketInterface):
@@ -46,9 +64,6 @@ class TrelloTicketClientImpl(TicketInterface):
             board_id: Trello board ID to use for tickets. If not provided, a new board will be created.
 
         """
-        # Apply nest_asyncio to allow nested event loops
-        nest_asyncio.apply()
-
         self.token = token or ""
         self.oauth_handler = oauth_handler or TrelloOAuthHandler.from_env()
         self.base_url = "https://api.trello.com/1"
@@ -196,7 +211,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(self._create_ticket_async(title, description, assignee))
+        return _run_async(self._create_ticket_async(title, description, assignee))
 
     async def _create_ticket_async(self, title: str, description: str, assignee: str | None) -> Ticket:
         """Async implementation of create_ticket."""
@@ -249,7 +264,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(
+        return _run_async(
             self._update_ticket_async(ticket_id, title, description, status, assignee),
         )
 
@@ -321,7 +336,7 @@ class TrelloTicketClientImpl(TicketInterface):
             else:
                 return True
 
-        return asyncio.run(_delete_async())
+        return _run_async(_delete_async())
 
     def get_ticket(self, ticket_id: str) -> Ticket:
         """Get a specific ticket by ID.
@@ -338,7 +353,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(self._get_ticket_async(ticket_id))
+        return _run_async(self._get_ticket_async(ticket_id))
 
     async def _get_ticket_async(self, ticket_id: str) -> Ticket:
         """Actual async implementation of get_ticket."""
@@ -381,8 +396,8 @@ class TrelloTicketClientImpl(TicketInterface):
 
         """
         if query:
-            return asyncio.run(self._search_tickets_async(query, status))
-        return asyncio.run(self._list_all_cards_async(status))
+            return _run_async(self._search_tickets_async(query, status))
+        return _run_async(self._list_all_cards_async(status))
 
     async def _search_tickets_async(self, query: str, status: TicketStatus | None = None) -> list[Ticket]:
         """Async implementation of search_tickets."""

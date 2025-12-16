@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from opentelemetry.metrics import Histogram
+from opentelemetry.metrics._internal.instrument import Counter
+import time
 from typing import TYPE_CHECKING, Any
 
 from tickets_api.src.tickets_api import TicketStatus
+
+try:
+    from opentelemetry import metrics
+
+    TELEMETRY_AVAILABLE = True
+except ImportError:
+    TELEMETRY_AVAILABLE = False
 
 if TYPE_CHECKING:
     from ai_api.src.ai_api import AIInterface
@@ -96,6 +106,34 @@ class AiChatTicketIntegration:
         # assume message IDs are ordered and thus comparable
         self._last_process_message_id = ""
 
+        # Initialize OpenTelemetry metrics if available
+        self._request_counter: Counter | None = None
+        self._success_counter: Counter | None = None
+        self._failure_counter: Counter | None = None
+        self._latency_histogram: Histogram | None = None
+        if TELEMETRY_AVAILABLE:
+            meter = metrics.get_meter(__name__)
+            self._request_counter = meter.create_counter(
+                name="integration_requests_total",
+                description="Total number of processed messages",
+                unit="1",
+            )
+            self._success_counter = meter.create_counter(
+                name="integration_requests_success",
+                description="Number of successfully processed messages",
+                unit="1",
+            )
+            self._failure_counter = meter.create_counter(
+                name="integration_requests_failure",
+                description="Number of failed message processing attempts",
+                unit="1",
+            )
+            self._latency_histogram = meter.create_histogram(
+                name="integration_request_duration",
+                description="Message processing duration in milliseconds",
+                unit="ms",
+            )
+
     async def start(self) -> None:
         """Start the integration polling loop."""
         self._running = True
@@ -138,8 +176,14 @@ class AiChatTicketIntegration:
     async def _process_command(self, content: str, _message: Message) -> None:
         """Process a natural language message using AI to extract intent and parameters."""
         content = content.strip()
+        start_time = time.time()
+        success = False
 
         try:
+            # Record request
+            if self._request_counter:
+                self._request_counter.add(1, {"channel_id": self.channel_id})
+
             # Use AI to parse the natural language message
             ai_response = await asyncio.to_thread(
                 self.ai_api.generate_response,
@@ -160,7 +204,35 @@ class AiChatTicketIntegration:
             action = parsed_action["action"]
             parameters: dict[str, Any] = parsed_action.get("parameters", {})
 
-            # Route to appropriate handler
+            # Delegate action routing to a separate method
+            success = await self._route_action(action, parameters)
+
+        except Exception:
+            logger.exception("Error processing natural language command")
+            _ = self.chat_api.send_message(
+                self.channel_id, "An error occurred while processing your request.",
+            )
+        finally:
+            # Record metrics
+            latency_ms = (time.time() - start_time) * 1000
+
+            if self._latency_histogram:
+                self._latency_histogram.record(
+                    latency_ms,
+                    {
+                        "channel_id": self.channel_id,
+                        "success": str(success),
+                    },
+                )
+
+            if success and self._success_counter:
+                self._success_counter.add(1, {"channel_id": self.channel_id})
+            elif not success and self._failure_counter:
+                self._failure_counter.add(1, {"channel_id": self.channel_id})
+
+    async def _route_action(self, action: str, parameters: dict[str, Any]) -> bool:
+        """Route the parsed action to the appropriate handler."""
+        try:
             if action == "CREATE":
                 await self._handle_create(parameters)
             elif action == "UPDATE":
@@ -176,12 +248,20 @@ class AiChatTicketIntegration:
                     self.channel_id,
                     "I'm not sure what you want to do. Try asking me to create, update, get, or delete a ticket.",
                 )
-
+            else:
+                _ = self.chat_api.send_message(
+                    self.channel_id,
+                    "Unrecognized action. Please try again.",
+                )
+                return False
         except Exception:
-            logger.exception("Error processing natural language command")
+            logger.exception("Error routing action: %s", action)
             _ = self.chat_api.send_message(
-                self.channel_id, "An error occurred while processing your request.",
+                self.channel_id, "An error occurred while handling your request.",
             )
+            return False
+        else:
+            return True
 
     def _parse_ai_response(self, ai_response: str | dict[str, Any]) -> dict[str, Any] | None:
         """Parse the AI response into a structured format.

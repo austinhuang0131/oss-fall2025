@@ -37,6 +37,7 @@ members = [
   "src/trello_ticket_impl",
   "src/chat_ticket_integration",
   "src/ai_chat_ticket_integration",
+  "src/ai_ticket_api_service",
 ]
 
 [tool.uv.sources]

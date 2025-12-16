@@ -8,6 +8,11 @@ dependencies = [
     "oss-apis",
 ]
 
+[project.optional-dependencies]
+telemetry = [
+    "opentelemetry-api>=1.21.0",
+]
+
 [tool.uv.sources]
 oss-apis = { git = "https://github.com/ivanearisty/OSS-APIs.git" }
 
