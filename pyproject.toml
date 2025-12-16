@@ -36,12 +36,13 @@ members = [
   "src/ticket_api",
   "src/trello_ticket_impl",
   "src/chat_ticket_integration",
+  "src/ai_chat_ticket_integration",
 ]
 
 [tool.uv.sources]
 discord-client-impl = { git = "https://github.com/koitu/oss-taapp.git", subdirectory = "src/discord_client_impl", rev = "hw3-alignment" }
-
-
+openai-impl = { git = "https://github.com/natashagit/oss-nml.git", subdirectory = "src/openai_impl", rev = "hw_3" }
+# gemini-client-impl = { git = "https://github.com/ranjan2601/OSPD-Fall-25.git", subdirectory = "src/gemini_client_impl", rev = "hw3" }
 
 [tool.ruff]
 line-length = 130 # high for top level due to tests
@@ -72,6 +73,7 @@ mypy_path = [
     "src/ticket_api/src",
     "src/trello_ticket_impl/src",
     "src/chat_ticket_integration/src",
+    "src/ai_chat_ticket_integration/src",
     "typings",
 ]
 ignore_missing_imports = false
@@ -127,4 +129,6 @@ exclude_lines = [
 [dependency-groups]
 dev = [
     "discord-client-impl",
+    "openai-impl",
+#     "gemini-client-impl",
 ]

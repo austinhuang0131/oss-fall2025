@@ -179,7 +179,7 @@ class ChatTicketIntegration:
         help_text = """
 Available commands:
 - !create <name> [--desc <description>]: Create a new ticket
-- !update <card_id> [--name <name>] [--desc <description>] [--list <list_id>]: Update a ticket
+- !update <card_id> [--name <name>] [--status <open/in progress/closed>]: Update a ticket
 - !delete <card_id>: Delete a ticket
 - !get <card_id>: Get ticket details
 - !help: Show this help message
