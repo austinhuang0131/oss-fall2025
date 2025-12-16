@@ -34,6 +34,7 @@ Analyze the user's message and determine which ticket operation they want to per
 - UPDATE: User wants to update an existing ticket (e.g., "update ticket", "change status", "rename ticket")
 - DELETE: User wants to delete a ticket (e.g., "delete ticket", "remove task")
 - GET: User wants to view/retrieve a ticket (e.g., "show me ticket", "get ticket details", "view ticket")
+- SEARCH: User wants to search/list tickets (e.g., "search for tickets", "find tickets about login", "list all open tickets", "show me closed tickets")
 - HELP: User needs help or information about available commands
 - UNKNOWN: The request doesn't match any ticket operation
 
@@ -43,6 +44,7 @@ Extract relevant parameters:
 must be one of: "open", "in_progress", "closed")
 - For DELETE: extract 'ticket_id' (required)
 - For GET: extract 'ticket_id' (required)
+- For SEARCH: extract 'query' (optional, search text) and 'status' (optional, must be one of: "open", "in_progress", "closed")
 
 Return a structured response matching the provided schema."""
 
@@ -52,7 +54,7 @@ RESPONSE_SCHEMA = {
     "properties": {
         "action": {
             "type": "string",
-            "enum": ["CREATE", "UPDATE", "DELETE", "GET", "HELP", "UNKNOWN"],
+            "enum": ["CREATE", "UPDATE", "DELETE", "GET", "SEARCH", "HELP", "UNKNOWN"],
             "description": "The ticket operation to perform",
         },
         "parameters": {
@@ -62,9 +64,10 @@ RESPONSE_SCHEMA = {
                 "title": {"type": "string"},
                 "description": {"type": "string"},
                 "status": {"type": "string", "enum": ["open", "in_progress", "closed"]},
+                "query": {"type": "string"},
             },
             "additionalProperties": False,
-            "required": ["ticket_id", "title", "status", "description"],
+            "required": ["ticket_id", "title", "status", "description", "query"],
             "description": "Parameters for the action",
         },
     },
@@ -241,12 +244,14 @@ class AiChatTicketIntegration:
                 await self._handle_delete(parameters)
             elif action == "GET":
                 await self._handle_get(parameters)
+            elif action == "SEARCH":
+                await self._handle_search(parameters)
             elif action == "HELP":
                 await self._handle_help(())
             elif action == "UNKNOWN":
                 _ = self.chat_api.send_message(
                     self.channel_id,
-                    "I'm not sure what you want to do. Try asking me to create, update, get, or delete a ticket.",
+                    "I'm not sure what you want to do. Try asking me to create, update, get, search, or delete a ticket.",
                 )
             else:
                 _ = self.chat_api.send_message(
@@ -415,6 +420,85 @@ class AiChatTicketIntegration:
                 self.channel_id, f"Failed to retrieve ticket {ticket_id}.",
             )
 
+    async def _handle_search(self, parameters: dict[str, Any]) -> None:
+        """Handle search action from natural language.
+
+        Args:
+            parameters: Dict with 'query' (optional) and 'status' (optional)
+
+        """
+        query = parameters.get("query", "").strip() or None
+        status_raw = parameters.get("status")
+
+        # Parse status if provided
+        status: TicketStatus | None = None
+        if status_raw:
+            status_lower = str(status_raw).lower()
+            if status_lower == "open":
+                status = TicketStatus.OPEN
+            elif status_lower in ("in progress", "in_progress"):
+                status = TicketStatus.IN_PROGRESS
+            elif status_lower == "closed":
+                status = TicketStatus.CLOSED
+            else:
+                _ = self.chat_api.send_message(
+                    self.channel_id,
+                    f"Invalid status '{status_raw}'. Valid statuses are: open, in progress, closed.",
+                )
+                return
+
+        try:
+            # Check if ticket_api has search_tickets method
+            if not hasattr(self.ticket_api, "search_tickets"):
+                _ = self.chat_api.send_message(
+                    self.channel_id,
+                    "Search functionality is not available with the current ticket system.",
+                )
+                return
+
+            # Run search in a thread since search_tickets is synchronous
+            tickets = await asyncio.to_thread(
+                self.ticket_api.search_tickets,  # type: ignore[attr-defined]
+                query=query,
+                status=status,
+            )
+
+            if not tickets:
+                search_desc = []
+                if query:
+                    search_desc.append(f"query '{query}'")
+                if status:
+                    search_desc.append(f"status {status.name}")
+                search_text = " and ".join(search_desc) if search_desc else "your criteria"
+                _ = self.chat_api.send_message(
+                    self.channel_id,
+                    f"No tickets found matching {search_text}.",
+                )
+                return
+
+            # Format the results
+            result_lines = [f"Found {len(tickets)} ticket(s):"]
+            for ticket in tickets[:10]:  # Limit to first 10 to avoid overwhelming the chat
+                result_lines.append(f"\n**{ticket.title}** (ID: {ticket.id})")
+                result_lines.append(f"  Status: {ticket.status.name}")
+                if ticket.description:
+                    desc_preview = ticket.description[:50] + "..." if len(ticket.description) > 50 else ticket.description
+                    result_lines.append(f"  Description: {desc_preview}")
+
+            if len(tickets) > 10:
+                result_lines.append(f"\n... and {len(tickets) - 10} more tickets.")
+
+            _ = self.chat_api.send_message(
+                self.channel_id,
+                "\n".join(result_lines),
+            )
+            logger.info("Found %d tickets matching search criteria", len(tickets))
+        except Exception:
+            logger.exception("Error searching tickets")
+            _ = self.chat_api.send_message(
+                self.channel_id, "Failed to search for tickets. Please try again.",
+            )
+
     async def _handle_help(self, _groups: tuple[str, ...]) -> None:
         """Handle help command."""
         help_text = """
@@ -434,6 +518,12 @@ I can help you manage tickets using natural language! Here are some examples:
 - "Show me ticket ABC123"
 - "Get details for ticket DEF456"
 - "What's in ticket GHI789?"
+
+**Search for tickets:**
+- "Search for tickets about login"
+- "Find all open tickets"
+- "List closed tickets"
+- "Show me tickets with bug in the title"
 
 **Delete a ticket:**
 - "Delete ticket ABC123"

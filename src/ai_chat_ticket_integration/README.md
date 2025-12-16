@@ -97,6 +97,19 @@ Retrieves ticket details.
 **Parameters:**
 - `ticket_id` (required): The ticket to retrieve
 
+#### `_handle_search(parameters)`
+Searches for tickets based on query and/or status.
+
+**Example inputs:**
+- "Search for tickets about login"
+- "Find all open tickets"
+- "List closed tickets"
+- "Show me in progress tickets with bug in the title"
+
+**Parameters:**
+- `query` (optional): Search text to filter by title or description
+- `status` (optional): Filter by status (open, in_progress, or closed)
+
 ## Usage Example
 
 ```python

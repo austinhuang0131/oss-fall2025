@@ -1,0 +1,21 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and fill in your values
+
+# GCP Project Configuration
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Service Configuration
+service_name   = "ai-ticket-api-service"
+environment    = "production"
+poll_interval  = "1.0"
+
+# Container Image (build and push to Artifact Registry first)
+image = "us-central1-docker.pkg.dev/your-project-id/ai-ticket-api/ai-ticket-api-service:latest"
+
+# Secrets (NEVER commit these - use terraform.tfvars which should be in .gitignore)
+discord_token      = "your-discord-bot-token"
+discord_channel_id = "your-discord-channel-id"
+trello_token       = "your-trello-token"
+trello_board_id    = "your-trello-board-id"  # Optional
+openai_api_key     = "your-openai-api-key"

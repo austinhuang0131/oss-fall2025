@@ -87,7 +87,53 @@ jobs:
       - store_artifacts:
           path: test-results/unit
 
-  # Job 4: CircleCI Integration Tests (All Tests Except Local Credentials)
+  # Job 4: Terraform Validation
+  terraform_validate:
+    docker:
+      - image: hashicorp/terraform:1.6
+    steps:
+      - checkout
+      - run:
+          name: "Terraform Format Check"
+          command: |
+            cd terraform
+            terraform fmt -check -recursive
+      - run:
+          name: "Terraform Init"
+          command: |
+            cd terraform
+            terraform init -backend=false
+      - run:
+          name: "Terraform Validate"
+          command: |
+            cd terraform
+            terraform validate
+
+  # Job 5: Docker Build and Push (for deployment)
+  docker_build:
+    docker:
+      - image: cimg/base:2024.01
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: "Build Docker Image"
+          command: |
+            docker build -f src/ai_ticket_api_service/Dockerfile \
+              -t ai-ticket-api-service:${CIRCLE_SHA1} \
+              -t ai-ticket-api-service:latest .
+      - run:
+          name: "Save Docker Image"
+          command: |
+            mkdir -p /tmp/docker
+            docker save ai-ticket-api-service:${CIRCLE_SHA1} -o /tmp/docker/image.tar
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - docker/image.tar
+
+  # Job 6: CircleCI Integration Tests (All Tests Except Local Credentials)
   circleci_test:
     docker:
       - image: cimg/python:3.11
@@ -232,6 +278,15 @@ workflows:
                 - kamen-requierd-fixes
                 - make-real-deletions
 
+      - terraform_validate:
+          filters:
+            branches:
+              ignore:
+                - main
+                - develop
+                - kamen-requierd-fixes
+                - make-real-deletions
+
       - unit_test:
           requires:
             - build
@@ -255,10 +310,23 @@ workflows:
                 - make-real-deletions
 
       # Optional: Report summary after core tests
+      - docker_build:
+          requires:
+            - lint
+            - terraform_validate
+          filters:
+            branches:
+              ignore:
+                - main
+                - develop
+                - kamen-requierd-fixes
+                - make-real-deletions
+
       - report_summary:
           requires:
             - unit_test
             - circleci_test
+            - terraform_validate
           filters:
             branches:
               ignore:
@@ -282,6 +350,15 @@ workflows:
       - lint:
           requires:
             - build
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - kamen-requierd-fixes
+                - make-real-deletions
+
+      - terraform_validate:
           filters:
             branches:
               only:
@@ -315,6 +392,7 @@ workflows:
       - integration_test:
           requires:
             - circleci_test # Run after CircleCI tests pass
+            - terraform_validate
           context: gmail-client # Context containing Gmail API credentials
           filters:
             branches:
@@ -329,6 +407,7 @@ workflows:
             - unit_test
             - circleci_test
             - integration_test
+            - terraform_validate
           filters:
             branches:
               only:
