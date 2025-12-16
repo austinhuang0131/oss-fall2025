@@ -13,10 +13,6 @@ COPY pyproject.toml uv.lock ./
 # Copy all source packages needed for the service
 COPY src/ai_ticket_api_service ./src/ai_ticket_api_service
 COPY src/ai_chat_ticket_integration ./src/ai_chat_ticket_integration
-COPY src/ticket_api ./src/ticket_api
-COPY src/trello_ticket_impl ./src/trello_ticket_impl
-COPY src/trello_client_impl ./src/trello_client_impl
-COPY src/kanban_client_api ./src/kanban_client_api
 
 # Install dependencies
 RUN uv sync --frozen --no-dev
