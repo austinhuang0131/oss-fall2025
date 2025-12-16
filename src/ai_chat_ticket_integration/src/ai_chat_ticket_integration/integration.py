@@ -25,6 +25,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Constants for search result formatting
+MAX_DESCRIPTION_LENGTH = 50
+MAX_TICKETS_DISPLAYED = 10
+
 # System prompt for AI to parse natural language commands
 SYSTEM_PROMPT = """You are a ticket management assistant that interprets natural language requests \
 and converts them into structured ticket operations.
@@ -34,7 +38,8 @@ Analyze the user's message and determine which ticket operation they want to per
 - UPDATE: User wants to update an existing ticket (e.g., "update ticket", "change status", "rename ticket")
 - DELETE: User wants to delete a ticket (e.g., "delete ticket", "remove task")
 - GET: User wants to view/retrieve a ticket (e.g., "show me ticket", "get ticket details", "view ticket")
-- SEARCH: User wants to search/list tickets (e.g., "search for tickets", "find tickets about login", "list all open tickets", "show me closed tickets")
+- SEARCH: User wants to search/list tickets (e.g., "search for tickets", "find tickets about login", \
+"list all open tickets", "show me closed tickets")
 - HELP: User needs help or information about available commands
 - UNKNOWN: The request doesn't match any ticket operation
 
@@ -420,6 +425,38 @@ class AiChatTicketIntegration:
                 self.channel_id, f"Failed to retrieve ticket {ticket_id}.",
             )
 
+    def _parse_ticket_status(self, status_raw: Any) -> TicketStatus | None:
+        """Parse status string to TicketStatus enum."""
+        if not status_raw:
+            return None
+        status_map = {
+            "open": TicketStatus.OPEN,
+            "in progress": TicketStatus.IN_PROGRESS,
+            "in_progress": TicketStatus.IN_PROGRESS,
+            "closed": TicketStatus.CLOSED,
+        }
+        return status_map.get(str(status_raw).lower())
+
+    def _format_search_results(self, tickets: list[Ticket]) -> str:
+        """Format search results for display."""
+        result_lines = [f"Found {len(tickets)} ticket(s):"]
+        for ticket in tickets[:MAX_TICKETS_DISPLAYED]:
+            result_lines.append(f"\n**{ticket.title}** (ID: {ticket.id})")
+            result_lines.append(f"  Status: {ticket.status.name}")
+            if ticket.description:
+                desc_len = len(ticket.description)
+                desc_preview = (
+                    ticket.description[:MAX_DESCRIPTION_LENGTH] + "..."
+                    if desc_len > MAX_DESCRIPTION_LENGTH
+                    else ticket.description
+                )
+                result_lines.append(f"  Description: {desc_preview}")
+
+        if len(tickets) > MAX_TICKETS_DISPLAYED:
+            remaining = len(tickets) - MAX_TICKETS_DISPLAYED
+            result_lines.append(f"\n... and {remaining} more tickets.")
+        return "\n".join(result_lines)
+
     async def _handle_search(self, parameters: dict[str, Any]) -> None:
         """Handle search action from natural language.
 
@@ -428,35 +465,26 @@ class AiChatTicketIntegration:
 
         """
         query = parameters.get("query", "").strip() or None
-        status_raw = parameters.get("status")
+        status = self._parse_ticket_status(parameters.get("status"))
 
-        # Parse status if provided
-        status: TicketStatus | None = None
-        if status_raw:
-            status_lower = str(status_raw).lower()
-            if status_lower == "open":
-                status = TicketStatus.OPEN
-            elif status_lower in ("in progress", "in_progress"):
-                status = TicketStatus.IN_PROGRESS
-            elif status_lower == "closed":
-                status = TicketStatus.CLOSED
-            else:
-                _ = self.chat_api.send_message(
-                    self.channel_id,
-                    f"Invalid status '{status_raw}'. Valid statuses are: open, in progress, closed.",
-                )
-                return
+        # Validate status if provided
+        if parameters.get("status") and status is None:
+            _ = self.chat_api.send_message(
+                self.channel_id,
+                f"Invalid status '{parameters.get('status')}'. "
+                "Valid statuses are: open, in progress, closed.",
+            )
+            return
+
+        # Check if search is available
+        if not hasattr(self.ticket_api, "search_tickets"):
+            _ = self.chat_api.send_message(
+                self.channel_id,
+                "Search functionality is not available with the current ticket system.",
+            )
+            return
 
         try:
-            # Check if ticket_api has search_tickets method
-            if not hasattr(self.ticket_api, "search_tickets"):
-                _ = self.chat_api.send_message(
-                    self.channel_id,
-                    "Search functionality is not available with the current ticket system.",
-                )
-                return
-
-            # Run search in a thread since search_tickets is synchronous
             tickets = await asyncio.to_thread(
                 self.ticket_api.search_tickets,  # type: ignore[attr-defined]
                 query=query,
@@ -476,22 +504,8 @@ class AiChatTicketIntegration:
                 )
                 return
 
-            # Format the results
-            result_lines = [f"Found {len(tickets)} ticket(s):"]
-            for ticket in tickets[:10]:  # Limit to first 10 to avoid overwhelming the chat
-                result_lines.append(f"\n**{ticket.title}** (ID: {ticket.id})")
-                result_lines.append(f"  Status: {ticket.status.name}")
-                if ticket.description:
-                    desc_preview = ticket.description[:50] + "..." if len(ticket.description) > 50 else ticket.description
-                    result_lines.append(f"  Description: {desc_preview}")
-
-            if len(tickets) > 10:
-                result_lines.append(f"\n... and {len(tickets) - 10} more tickets.")
-
-            _ = self.chat_api.send_message(
-                self.channel_id,
-                "\n".join(result_lines),
-            )
+            result_message = self._format_search_results(tickets)
+            _ = self.chat_api.send_message(self.channel_id, result_message)
             logger.info("Found %d tickets matching search criteria", len(tickets))
         except Exception:
             logger.exception("Error searching tickets")
