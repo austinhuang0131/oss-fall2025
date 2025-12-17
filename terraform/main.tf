@@ -213,7 +213,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
         name  = "TEST_DISCORD_CHANNEL_ID"
         value = var.discord_channel_id
       }
-      
+
       env {
         name  = "BOT_USER_ID"
         value = var.bot_user_id
