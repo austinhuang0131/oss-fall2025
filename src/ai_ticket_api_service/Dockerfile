@@ -52,4 +52,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Set PYTHONPATH and run the application
 ENV PYTHONPATH="/app/src:/app/src/ai_chat_ticket_integration/src:/app/src/trello_ticket_impl/src:/app/src/ai_ticket_api_service/src"
-CMD ["python", "-m", "uvicorn", "ai_ticket_api_service.src.ai_ticket_api_service.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "uvicorn", "ai_ticket_api_service.app:app", "--host", "0.0.0.0", "--port", "8080"]
