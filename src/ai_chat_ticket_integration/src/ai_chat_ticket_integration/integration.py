@@ -93,6 +93,7 @@ class AiChatTicketIntegration:
         ticket_api: TicketInterface,
         ai_api: AIInterface,
         channel_id: str,
+        bot_user_id: str | None = None,
         poll_interval: float = 1.0,
     ) -> None:
         """Initialize the integration.
@@ -102,6 +103,7 @@ class AiChatTicketIntegration:
             ticket_api: Ticket API implementation
             ai_api: AI API implementation
             channel_id: Fixed channel ID for chat operations
+            bot_user_id: Optional bot user ID to ignore messages from itself
             poll_interval: Polling interval in seconds (default: 1.0)
 
         """
@@ -109,6 +111,7 @@ class AiChatTicketIntegration:
         self.ticket_api = ticket_api
         self.ai_api = ai_api
         self.channel_id = channel_id
+        self.bot_user_id = bot_user_id
         self.poll_interval = poll_interval
         self._running = False
         # assume message IDs are ordered and thus comparable
@@ -167,6 +170,10 @@ class AiChatTicketIntegration:
             messages = await asyncio.to_thread(self.chat_api.get_messages, self.channel_id, limit=2)
 
             for message in messages:
+                # Ignore messages from the bot itself
+                if self.bot_user_id and message.sender_id == self.bot_user_id:
+                    continue
+
                 message_id = message.id
 
                 if message_id <= self._last_process_message_id:

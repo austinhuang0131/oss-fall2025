@@ -154,13 +154,16 @@ def load_configuration() -> dict[str, str]:
         "trello_board_id": os.getenv("TEST_TRELLO_BOARD_ID", ""),
         "openai_api_key": os.getenv("TEST_OPENAI_API_KEY", ""),
         "poll_interval": os.getenv("POLL_INTERVAL", "1.0"),
+        "user_id": os.getenv("BOT_USER_ID", ""),
     }
 
     # Validate required fields
-    missing = [k for k, v in config.items() if not v and k != "trello_board_id"]
+    missing = [k for k, v in config.items() if not v and k != "trello_board_id" and k != "user_id"]
     if missing:
         msg = f"Missing required environment variables: {', '.join(missing)}"
         raise ValueError(msg)
+    if config["user_id"] == "":
+        print("Warning: BOT_USER_ID not set, bot may respond to its own messages.")
 
     return config
 
@@ -188,6 +191,7 @@ def create_integration() -> AiChatTicketIntegration:
         ticket_api=trello_client,
         ai_api=openai_client,  # type: ignore[arg-type]
         channel_id=config["channel_id"],
+        bot_user_id=config["user_id"] if "user_id" in config else None,
         poll_interval=float(config["poll_interval"]),
     )
 
