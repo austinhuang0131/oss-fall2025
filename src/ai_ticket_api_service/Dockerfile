@@ -13,9 +13,12 @@ COPY pyproject.toml uv.lock ./
 # Copy all source packages needed for the service
 COPY src/ai_ticket_api_service ./src/ai_ticket_api_service
 COPY src/ai_chat_ticket_integration ./src/ai_chat_ticket_integration
+COPY src/trello_ticket_impl ./src/trello_ticket_impl
+COPY typings ./typings
 
 # Install dependencies
 RUN uv sync --frozen --no-dev
+RUN uv pip install uvicorn[standard]
 
 # Final runtime stage
 FROM python:3.11-slim
@@ -47,5 +50,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
 
-# Run the application
-CMD ["python", "-m", "uvicorn", "ai_ticket_api_service.app:app", "--host", "0.0.0.0", "--port", "8080"]
+# Set PYTHONPATH and run the application
+ENV PYTHONPATH="/app/src:/app/src/ai_chat_ticket_integration/src:/app/src/trello_ticket_impl/src:/app/src/ai_ticket_api_service/src"
+CMD ["python", "-m", "uvicorn", "ai_ticket_api_service.src.ai_ticket_api_service.app:app", "--host", "0.0.0.0", "--port", "8080"]

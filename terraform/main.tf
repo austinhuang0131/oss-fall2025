@@ -184,11 +184,6 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
 
       env {
-        name  = "PORT"
-        value = "8080"
-      }
-
-      env {
         name  = "ENVIRONMENT"
         value = var.environment
       }
@@ -249,6 +244,16 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           memory = "512Mi"
         }
         cpu_idle = true
+        startup_cpu_boost = true
+      }
+      
+      startup_probe {
+        http_get {
+          path = "/health"
+        }
+        timeout_seconds = 30
+        period_seconds = 15
+        failure_threshold = 20
       }
     }
 
