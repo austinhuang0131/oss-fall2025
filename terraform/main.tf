@@ -50,6 +50,12 @@ variable "discord_channel_id" {
   sensitive   = true
 }
 
+variable "bot_user_id" {
+  description = "Discord bot user ID"
+  type        = string
+  sensitive   = true
+}
+
 variable "trello_token" {
   description = "Trello OAuth token"
   type        = string
@@ -206,6 +212,11 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       env {
         name  = "TEST_DISCORD_CHANNEL_ID"
         value = var.discord_channel_id
+      }
+      
+      env {
+        name  = "BOT_USER_ID"
+        value = var.bot_user_id
       }
 
       env {
