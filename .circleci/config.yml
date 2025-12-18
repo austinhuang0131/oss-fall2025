@@ -267,20 +267,24 @@ jobs:
       - run:
           name: "Install gcloud CLI"
           command: |
-            apk add --update python3 py3-pip curl
+            apk add --update python3 py3-pip curl bash
             curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar xz
-            ./google-cloud-sdk/install.sh --quiet
+            ./google-cloud-sdk/install.sh --quiet --path-update=false
             export PATH="$PATH:$PWD/google-cloud-sdk/bin"
             echo 'export PATH="$PATH:'$PWD'/google-cloud-sdk/bin"' >> $BASH_ENV
+            source $BASH_ENV
+            gcloud --version
       - run:
           name: "Authenticate with GCP"
           command: |
+            source $BASH_ENV
             echo $GCLOUD_SERVICE_KEY | base64 -d > /tmp/gcp-key.json
             gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
             gcloud config set project $GCP_PROJECT_ID
       - run:
           name: "Load Docker Image and Push to Artifact Registry"
           command: |
+            source $BASH_ENV
             # Load the Docker image from workspace
             docker load -i /tmp/docker/image.tar
             
