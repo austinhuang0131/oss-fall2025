@@ -337,8 +337,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
       - lint:
           requires:
             - build
@@ -347,8 +346,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - terraform_validate:
           filters:
@@ -356,8 +354,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - unit_test:
           requires:
@@ -367,8 +364,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - circleci_test:
           requires:
@@ -378,10 +374,8 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
-      # Optional: Report summary after core tests
       - docker_build:
           requires:
             - lint
@@ -391,9 +385,9 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
+      # Optional: Report summary after core tests
       - report_summary:
           requires:
             - unit_test
@@ -404,8 +398,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
   # Enhanced workflow: Full tests with real credentials (main/develop only)
   full_integration:
@@ -416,8 +409,7 @@ workflows:
               only:
                 - main
                 - develop # Add other branches as needed
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - lint:
           requires:
@@ -427,8 +419,7 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - terraform_validate:
           filters:
@@ -436,8 +427,7 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - unit_test:
           requires:
@@ -447,8 +437,7 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - circleci_test:
           requires:
@@ -458,8 +447,7 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - integration_test:
           requires:
@@ -471,8 +459,18 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
+
+      - docker_build:
+          requires:
+            - lint
+            - terraform_validate
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - hw3
                 
       # Job 7: Terraform Deploy (for deployment walkthrough)
       - terraform_deploy:
@@ -485,6 +483,7 @@ workflows:
               only:
                 - main
                 - develop
+                - hw3
 
       - report_summary:
           requires:
@@ -497,5 +496,4 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
