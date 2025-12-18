@@ -299,7 +299,7 @@ jobs:
           name: "Create terraform.tfvars"
           command: |
             cd terraform
-            cat > terraform.tfvars << EOF
+            cat > terraform.tfvars \<< EOF
             project_id = "$GCP_PROJECT_ID"
             region = "$GCP_REGION"
             image = "$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}"
