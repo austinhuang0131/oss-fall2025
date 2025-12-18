@@ -326,9 +326,11 @@ jobs:
       - run:
           name: "Terraform Init and Apply"
           command: |
+            source $BASH_ENV
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
             cd terraform
             terraform init
-            terraform plan
+            terraform plan -var="bot_user_id=${DISCORD_BOT_USER_ID:-}"
             terraform apply -auto-approve
       - run:
           name: "Output Service URL"
