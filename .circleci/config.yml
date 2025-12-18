@@ -254,7 +254,7 @@ jobs:
                echo "Coverage XML not found."
             fi
 
- # Job 7: Terraform Deploy (for deployment walkthrough)
+  # Job 7: Terraform Deploy (for deployment walkthrough)
   terraform_deploy:
     docker:
       - image: hashicorp/terraform:1.6
@@ -281,24 +281,34 @@ jobs:
       - run:
           name: "Authenticate with GCP"
           command: |
+            set -euo pipefail
             source $BASH_ENV
-            # Decode and save service account key
-            echo $GCLOUD_SERVICE_KEY | base64 -d > /tmp/gcp-key.json
-            # Authenticate gcloud CLI
+
+            if [ -z "${GCLOUD_SERVICE_KEY:-}" ]; then
+              echo "GCLOUD_SERVICE_KEY is missing in CircleCI context (base64 of service account json)."
+              exit 2
+            fi
+            if [ -z "${GCP_PROJECT_ID:-}" ] || [ -z "${GCP_REGION:-}" ]; then
+              echo "GCP_PROJECT_ID and/or GCP_REGION missing in CircleCI context."
+              exit 2
+            fi
+
+            echo "$GCLOUD_SERVICE_KEY" | base64 -d > /tmp/gcp-key.json
             gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-            gcloud config set project $GCP_PROJECT_ID
-            # Set up Application Default Credentials for Terraform
+            gcloud config set project "$GCP_PROJECT_ID"
+
             export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
             echo 'export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json' >> $BASH_ENV
       - run:
           name: "Load Docker Image and Push to Artifact Registry"
           command: |
+            set -euo pipefail
             source $BASH_ENV
             # Load the Docker image from workspace
             docker load -i /tmp/docker/image.tar
             
             # Configure Docker for Artifact Registry
-            gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+            gcloud auth configure-docker $GCP_REGION-docker.pkg.dev --quiet
             
             # Tag and push image
             docker tag ai-ticket-api-service:${CIRCLE_SHA1} \
@@ -318,20 +328,34 @@ jobs:
             image = "$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}"
             discord_token = "$DISCORD_ACCESS_TOKEN"
             discord_channel_id = "$TEST_DISCORD_CHANNEL_ID"
+            bot_user_id = "$DISCORD_BOT_USER_ID"
             trello_token = "$TRELLO_TOKEN"
             trello_board_id = "$TEST_TRELLO_BOARD_ID"
             openai_api_key = "$TEST_OPENAI_API_KEY"
             environment = "production"
             EOF
       - run:
-          name: "Terraform Init and Apply"
+          name: "Terraform Init / Import existing / Plan / Apply"
           command: |
+            set -euo pipefail
             source $BASH_ENV
-            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
             cd terraform
-            terraform init
-            terraform plan -var="bot_user_id=${DISCORD_BOT_USER_ID:-}"
-            terraform apply -auto-approve
+            terraform init -input=false
+
+            # If a previous run created resources but state was lost, imports fix 409 AlreadyExists errors.
+            terraform import -input=false google_artifact_registry_repository.docker_repo \
+              "projects/${GCP_PROJECT_ID}/locations/${GCP_REGION}/repositories/ai-ticket-api" || true
+            terraform import -input=false google_secret_manager_secret.discord_token \
+              "projects/${GCP_PROJECT_ID}/secrets/discord-token" || true
+            terraform import -input=false google_secret_manager_secret.trello_token \
+              "projects/${GCP_PROJECT_ID}/secrets/trello-token" || true
+            terraform import -input=false google_secret_manager_secret.openai_api_key \
+              "projects/${GCP_PROJECT_ID}/secrets/openai-api-key" || true
+            terraform import -input=false google_service_account.cloud_run_sa \
+              "projects/${GCP_PROJECT_ID}/serviceAccounts/ai-ticket-api-service@${GCP_PROJECT_ID}.iam.gserviceaccount.com" || true
+
+            terraform plan -input=false
+            terraform apply -auto-approve -input=false
       - run:
           name: "Output Service URL"
           command: |
