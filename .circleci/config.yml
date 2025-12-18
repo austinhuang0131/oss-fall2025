@@ -254,7 +254,7 @@ jobs:
                echo "Coverage XML not found."
             fi
 
-  # Job 7: Terraform Deploy (for deployment walkthrough)
+# Job 7: Terraform Deploy (for deployment walkthrough)
   terraform_deploy:
     docker:
       - image: hashicorp/terraform:1.6
@@ -264,6 +264,10 @@ jobs:
           at: /tmp
       - setup_remote_docker:
           docker_layer_caching: true
+      - run:
+          name: "Install Docker CLI"
+          command: |
+            apk add --update docker-cli
       - run:
           name: "Install gcloud CLI"
           command: |
