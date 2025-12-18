@@ -254,16 +254,16 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           cpu    = "1"
           memory = "512Mi"
         }
-        cpu_idle = true
+        cpu_idle          = true
         startup_cpu_boost = true
       }
-      
+
       startup_probe {
         http_get {
           path = "/health"
         }
-        timeout_seconds = 30
-        period_seconds = 15
+        timeout_seconds   = 30
+        period_seconds    = 15
         failure_threshold = 20
       }
     }
