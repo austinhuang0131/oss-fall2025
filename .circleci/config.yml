@@ -282,9 +282,14 @@ jobs:
           name: "Authenticate with GCP"
           command: |
             source $BASH_ENV
+            # Decode and save service account key
             echo $GCLOUD_SERVICE_KEY | base64 -d > /tmp/gcp-key.json
+            # Authenticate gcloud CLI
             gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
             gcloud config set project $GCP_PROJECT_ID
+            # Set up Application Default Credentials for Terraform
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+            echo 'export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json' >> $BASH_ENV
       - run:
           name: "Load Docker Image and Push to Artifact Registry"
           command: |
