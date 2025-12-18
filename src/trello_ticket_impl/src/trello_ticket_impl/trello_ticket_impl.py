@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
-from tickets_api.src.tickets_api import TicketInterface, TicketStatus  # type: ignore[import-untyped]
+from tickets_api.src.tickets_api import TicketInterface, TicketStatus
 from trello_client_impl.oauth import TrelloOAuthHandler
 
 from .exceptions import (
@@ -18,7 +19,25 @@ from .exceptions import (
 from .models import TrelloTicket
 
 if TYPE_CHECKING:
-    from tickets_api.src.tickets_api import Ticket  # type: ignore[import-untyped]
+    from collections.abc import Coroutine
+
+    from tickets_api.src.tickets_api import Ticket
+
+T = TypeVar("T")
+
+
+def _run_async(coro: Coroutine[Any, Any, T]) -> T:
+    """Run an async coroutine, using existing loop if available."""
+    try:
+        _ = asyncio.get_running_loop()
+    except RuntimeError:
+        # No loop running, use asyncio.run
+        return asyncio.run(coro)
+    else:
+        # Loop is running, create a task and wait for it
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
 
 
 class TrelloTicketClientImpl(TicketInterface):
@@ -192,7 +211,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(self._create_ticket_async(title, description, assignee))
+        return _run_async(self._create_ticket_async(title, description, assignee))
 
     async def _create_ticket_async(self, title: str, description: str, assignee: str | None) -> Ticket:
         """Async implementation of create_ticket."""
@@ -245,7 +264,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(
+        return _run_async(
             self._update_ticket_async(ticket_id, title, description, status, assignee),
         )
 
@@ -309,8 +328,15 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        _ = self._make_request("DELETE", f"/cards/{ticket_id}")
-        return True
+        async def _delete_async() -> bool:
+            try:
+                _ = await self._make_request("DELETE", f"/cards/{ticket_id}")
+            except TrelloAPIError:
+                return False
+            else:
+                return True
+
+        return _run_async(_delete_async())
 
     def get_ticket(self, ticket_id: str) -> Ticket:
         """Get a specific ticket by ID.
@@ -327,7 +353,7 @@ class TrelloTicketClientImpl(TicketInterface):
             TicketAuthenticationError: If authentication fails
 
         """
-        return asyncio.run(self._get_ticket_async(ticket_id))
+        return _run_async(self._get_ticket_async(ticket_id))
 
     async def _get_ticket_async(self, ticket_id: str) -> Ticket:
         """Actual async implementation of get_ticket."""
@@ -370,8 +396,8 @@ class TrelloTicketClientImpl(TicketInterface):
 
         """
         if query:
-            return asyncio.run(self._search_tickets_async(query, status))
-        return asyncio.run(self._list_all_cards_async(status))
+            return _run_async(self._search_tickets_async(query, status))
+        return _run_async(self._list_all_cards_async(status))
 
     async def _search_tickets_async(self, query: str, status: TicketStatus | None = None) -> list[Ticket]:
         """Async implementation of search_tickets."""
@@ -379,21 +405,26 @@ class TrelloTicketClientImpl(TicketInterface):
 
         params = {
             "query": query,
-            "idBoards": self._board_id or "",
-            "modelTypes": "cards",
+            "id_boards": self._board_id or "",
+            "model_types": "cards",
             "cards_limit": "1000",
         }
 
         # Get all cards on the board
         data = await self._make_request("GET", "/search", params)
 
-        if not isinstance(data, list):
+        if not isinstance(data, dict):
+            msg = "API did not return a dict for search."
+            raise TrelloAPIError(msg)
+
+        cards = data.get("cards", [])
+        if not isinstance(cards, list):
             msg = "API did not return a list of cards."
             raise TrelloAPIError(msg)
 
         tickets: list[Ticket] = []
         list_id = self._status_to_list(status) if status else None
-        for card_data in data:
+        for card_data in cards:
 
             # Apply status filter
             if list_id is not None and card_data["idList"] != list_id:

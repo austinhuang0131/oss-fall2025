@@ -87,7 +87,53 @@ jobs:
       - store_artifacts:
           path: test-results/unit
 
-  # Job 4: CircleCI Integration Tests (All Tests Except Local Credentials)
+  # Job 4: Terraform Validation
+  terraform_validate:
+    docker:
+      - image: hashicorp/terraform:1.6
+    steps:
+      - checkout
+      - run:
+          name: "Terraform Format Check"
+          command: |
+            cd terraform
+            terraform fmt -check -recursive
+      - run:
+          name: "Terraform Init"
+          command: |
+            cd terraform
+            terraform init -backend=false
+      - run:
+          name: "Terraform Validate"
+          command: |
+            cd terraform
+            terraform validate
+
+  # Job 5: Docker Build and Push (for deployment)
+  docker_build:
+    docker:
+      - image: cimg/base:2024.01
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: "Build Docker Image"
+          command: |
+            docker build -f src/ai_ticket_api_service/Dockerfile \
+              -t ai-ticket-api-service:${CIRCLE_SHA1} \
+              -t ai-ticket-api-service:latest .
+      - run:
+          name: "Save Docker Image"
+          command: |
+            mkdir -p /tmp/docker
+            docker save ai-ticket-api-service:${CIRCLE_SHA1} -o /tmp/docker/image.tar
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - docker/image.tar
+
+  # Job 6: CircleCI Integration Tests (All Tests Except Local Credentials)
   circleci_test:
     docker:
       - image: cimg/python:3.11
@@ -208,6 +254,78 @@ jobs:
                echo "Coverage XML not found."
             fi
 
+  # Job 7: Terraform Deploy (for deployment walkthrough)
+  terraform_deploy:
+    docker:
+      - image: hashicorp/terraform:1.6
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: "Install gcloud CLI"
+          command: |
+            apk add --update python3 py3-pip curl
+            curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz | tar xz
+            ./google-cloud-sdk/install.sh --quiet
+            export PATH="$PATH:$PWD/google-cloud-sdk/bin"
+            echo 'export PATH="$PATH:'$PWD'/google-cloud-sdk/bin"' >> $BASH_ENV
+      - run:
+          name: "Authenticate with GCP"
+          command: |
+            echo $GCLOUD_SERVICE_KEY | base64 -d > /tmp/gcp-key.json
+            gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+            gcloud config set project $GCP_PROJECT_ID
+      - run:
+          name: "Load Docker Image and Push to Artifact Registry"
+          command: |
+            # Load the Docker image from workspace
+            docker load -i /tmp/docker/image.tar
+            
+            # Configure Docker for Artifact Registry
+            gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+            
+            # Tag and push image
+            docker tag ai-ticket-api-service:${CIRCLE_SHA1} \
+              $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}
+            docker tag ai-ticket-api-service:${CIRCLE_SHA1} \
+              $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:latest
+            
+            docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}
+            docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:latest
+      - run:
+          name: "Create terraform.tfvars"
+          command: |
+            cd terraform
+            cat > terraform.tfvars \<< EOF
+            project_id = "$GCP_PROJECT_ID"
+            region = "$GCP_REGION"
+            image = "$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}"
+            discord_token = "$DISCORD_ACCESS_TOKEN"
+            discord_channel_id = "$TEST_DISCORD_CHANNEL_ID"
+            trello_token = "$TRELLO_TOKEN"
+            trello_board_id = "$TEST_TRELLO_BOARD_ID"
+            openai_api_key = "$TEST_OPENAI_API_KEY"
+            environment = "production"
+            EOF
+      - run:
+          name: "Terraform Init and Apply"
+          command: |
+            cd terraform
+            terraform init
+            terraform plan
+            terraform apply -auto-approve
+      - run:
+          name: "Output Service URL"
+          command: |
+            cd terraform
+            echo "Deployment complete!"
+            echo "Service URL: $(terraform output -raw service_url)"
+            echo "Health Check: curl $(terraform output -raw service_url)/health"
+            echo "Metrics: curl $(terraform output -raw service_url)/metrics"
+
 # Orchestrate jobs using workflows
 workflows:
   # Main workflow: Build, Lint, Test (runs on all branches)
@@ -219,8 +337,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
       - lint:
           requires:
             - build
@@ -229,8 +346,15 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
+
+      - terraform_validate:
+          filters:
+            branches:
+              ignore:
+                - main
+                - develop
+                - hw3
 
       - unit_test:
           requires:
@@ -240,8 +364,7 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - circleci_test:
           requires:
@@ -251,21 +374,31 @@ workflows:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
+
+      - docker_build:
+          requires:
+            - lint
+            - terraform_validate
+          filters:
+            branches:
+              ignore:
+                - main
+                - develop
+                - hw3
 
       # Optional: Report summary after core tests
       - report_summary:
           requires:
             - unit_test
             - circleci_test
+            - terraform_validate
           filters:
             branches:
               ignore:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
   # Enhanced workflow: Full tests with real credentials (main/develop only)
   full_integration:
@@ -276,8 +409,7 @@ workflows:
               only:
                 - main
                 - develop # Add other branches as needed
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - lint:
           requires:
@@ -287,8 +419,15 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
+
+      - terraform_validate:
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - hw3
 
       - unit_test:
           requires:
@@ -298,8 +437,7 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - circleci_test:
           requires:
@@ -309,30 +447,53 @@ workflows:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
 
       - integration_test:
           requires:
             - circleci_test # Run after CircleCI tests pass
+            - terraform_validate
           context: gmail-client # Context containing Gmail API credentials
           filters:
             branches:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
-                
-      - report_summary:
+                - hw3
+
+      - docker_build:
           requires:
-            - unit_test
-            - circleci_test
-            - integration_test
+            - lint
+            - terraform_validate
           filters:
             branches:
               only:
                 - main
                 - develop
-                - kamen-requierd-fixes
-                - make-real-deletions
+                - hw3
+                
+      # Job 7: Terraform Deploy (for deployment walkthrough)
+      - terraform_deploy:
+          requires:
+            - terraform_validate
+            - docker_build
+          context: gcp-deployment # GCP credentials context
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - hw3
+
+      - report_summary:
+          requires:
+            - unit_test
+            - circleci_test
+            - integration_test
+            - terraform_validate
+          filters:
+            branches:
+              only:
+                - main
+                - develop
+                - hw3

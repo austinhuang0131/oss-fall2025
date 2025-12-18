@@ -1,0 +1,82 @@
+# Ignore Docker build artifacts
+.dockerignore
+Dockerfile
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Environment
+.env
+.env.local
+*.tfvars
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Tests
+tests/
+**/tests/
+**/*_test.py
+**/test_*.py
+
+# CI/CD
+.circleci/
+.github/
+
+# Terraform
+terraform/
+*.tf
+*.tfstate*
+
+# Build artifacts that we don't need in the image
+node_modules/

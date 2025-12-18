@@ -350,7 +350,7 @@ class TestTrelloTicketClientImpl:
             if endpoint == "/search":
                 assert params is not None
                 assert params.get("query") == "bug"
-                return card_list
+                return {"cards": card_list}
             return []
 
         monkeypatch.setattr(client, "_make_request", mock_make_request)
@@ -548,22 +548,24 @@ class TestTrelloTicketClientImpl:
                     {"id": "list_in_progress", "name": "In Progress"},
                 ]
             if endpoint == "/search":
-                return [
-                    {
-                        "id": "card1",
-                        "name": "Open bug",
-                        "desc": "Not fixed",
-                        "idList": "list_todo",
-                        "idMembers": [],
-                    },
-                    {
-                        "id": "card2",
-                        "name": "Fixed bug",
-                        "desc": "Now done",
-                        "idList": "list_done",
-                        "idMembers": [],
-                    },
-                ]
+                return {
+                    "cards": [
+                        {
+                            "id": "card1",
+                            "name": "Open bug",
+                            "desc": "Not fixed",
+                            "idList": "list_todo",
+                            "idMembers": [],
+                        },
+                        {
+                            "id": "card2",
+                            "name": "Fixed bug",
+                            "desc": "Now done",
+                            "idList": "list_done",
+                            "idMembers": [],
+                        },
+                    ],
+                }
             return []
 
         monkeypatch.setattr(client, "_make_request", mock_make_request)
