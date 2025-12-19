@@ -9,6 +9,8 @@ dependencies = []
 [tool.uv.workspace]
 members = [
   "src/trello_ticket_impl",
+  "src/trello_client_impl",
+  "src/kanban_client_api",
   "src/ai_chat_ticket_integration",
   "src/ai_ticket_api_service",
 ]
