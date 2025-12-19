@@ -1,5 +1,5 @@
 # Multi-stage build for AI Ticket API Service
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -7,17 +7,19 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Set working directory
 WORKDIR /app
 
+# Install git for dependency management or source control
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Copy workspace configuration
-COPY pyproject.toml uv.lock ./
+COPY pyproject-docker.toml ./pyproject.toml
 
 # Copy all source packages needed for the service
 COPY src/ai_ticket_api_service ./src/ai_ticket_api_service
 COPY src/ai_chat_ticket_integration ./src/ai_chat_ticket_integration
 COPY src/trello_ticket_impl ./src/trello_ticket_impl
-COPY typings ./typings
 
 # Install dependencies
-RUN uv sync --frozen --no-dev
+RUN uv sync --all-packages --no-dev
 RUN uv pip install uvicorn[standard]
 
 # Final runtime stage
