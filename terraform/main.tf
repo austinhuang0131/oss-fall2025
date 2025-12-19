@@ -225,6 +225,26 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
 
       env {
+        name = "TRELLO_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.trello_token.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "TRELLO_API_SECRET"
+        value = "skibidi"
+      }
+
+      env {
+        name = "REDIRECT_URI"
+        value = "skibidi"
+      }
+
+      env {
         name  = "TEST_TRELLO_BOARD_ID"
         value = var.trello_board_id
       }
