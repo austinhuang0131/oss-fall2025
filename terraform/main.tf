@@ -284,11 +284,6 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
 
       env {
-        name  = "USE_GCP_EXPORTER"
-        value = "true"
-      }
-
-      env {
         name  = "GCP_PROJECT_ID"
         value = var.project_id
       }

@@ -8,7 +8,6 @@ import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
 
 from ai_chat_ticket_integration import AiChatTicketIntegration
 from discord_client_impl.discord_impl import DiscordClient
@@ -26,16 +25,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pydantic import BaseModel
 from trello_ticket_impl.trello_ticket_impl import TrelloTicketClientImpl
-
-has_gcp_exporter = False
-if TYPE_CHECKING:
-    from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-else:
-    try:
-        from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-        has_gcp_exporter = True
-    except ImportError:
-        CloudTraceSpanExporter = None  # type: ignore[assignment]
 
 # Load environment variables
 _ = load_dotenv()
@@ -59,7 +48,12 @@ class HealthResponse(BaseModel):
 
 # Initialize OpenTelemetry
 def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
-    """Set up OpenTelemetry tracing and metrics."""
+    """Set up OpenTelemetry tracing and metrics.
+
+    For Cloud Run, this uses the default OTLP exporters which automatically
+    send telemetry to Google Cloud Operations when GOOGLE_APPLICATION_CREDENTIALS
+    is set and the service account has the required permissions.
+    """
     # Create resource with service information
     resource = Resource.create(
         {
@@ -69,47 +63,24 @@ def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
         },
     )
 
-    # Determine which exporter to use
-    use_gcp = os.getenv("USE_GCP_EXPORTER", "false").lower() == "true"
-    gcp_project_id = os.getenv("GCP_PROJECT_ID")
+    # Set up OpenTelemetry Python SDK with OTLP exporters
+    # Cloud Run automatically routes OTLP to Google Cloud Operations
+    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    trace.set_tracer_provider(tracer_provider)
 
-    trace_exporter_obj: CloudTraceSpanExporter | OTLPSpanExporter | None = None
-
-    # Set up tracing
-    if use_gcp and gcp_project_id and has_gcp_exporter:
-        logger.info("Using Google Cloud Trace exporter with project ID: %s", gcp_project_id)
-        trace_exporter_obj = CloudTraceSpanExporter(project_id=gcp_project_id)  # type: ignore[no-untyped-call]
-    else:
-        endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-        logger.info("Using OTLP exporter with endpoint: %s", endpoint)
-        trace_exporter_obj = OTLPSpanExporter(endpoint=endpoint, insecure=True)
-    trace_provider = TracerProvider(resource=resource)
-    trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter_obj))
-    trace.set_tracer_provider(trace_provider)
-
-    # Set up metrics
-    if use_gcp and gcp_project_id:
-        logger.info("Using OTLP metrics exporter for Google Cloud (via gRPC)")
-        # Google Cloud Monitoring uses OTLP gRPC endpoint
-        metric_reader = PeriodicExportingMetricReader(
-            OTLPMetricExporter(
-                endpoint="opentelemetry-metric.googleapis.com:443",
-                insecure=False,
-            ),
-        )
-    else:
-        metric_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-        metric_reader = PeriodicExportingMetricReader(
-            OTLPMetricExporter(
-                endpoint=metric_endpoint,
-                insecure=True,
-            ),
-        )
-    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+    # Metrics are exported every 60 seconds by default
+    reader = PeriodicExportingMetricReader(OTLPMetricExporter())
+    meter_provider = MeterProvider(metric_readers=[reader], resource=resource)
     metrics.set_meter_provider(meter_provider)
 
     tracer = trace.get_tracer(__name__)
     meter = metrics.get_meter(__name__)
+
+    logger.info("OpenTelemetry configured for Cloud Run with OTLP exporters")
+    logger.info("Service: %s, Environment: %s",
+                resource.attributes.get("service.name"),
+                resource.attributes.get("deployment.environment"))
 
     return tracer, meter
 
