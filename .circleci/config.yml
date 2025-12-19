@@ -353,6 +353,8 @@ jobs:
               "projects/${GCP_PROJECT_ID}/secrets/openai-api-key" || true
             terraform import -input=false google_service_account.cloud_run_sa \
               "projects/${GCP_PROJECT_ID}/serviceAccounts/ai-ticket-api-service@${GCP_PROJECT_ID}.iam.gserviceaccount.com" || true
+            terraform import -input=false google_cloud_run_v2_service.ai_ticket_api \
+              "projects/${GCP_PROJECT_ID}/locations/${GCP_REGION}/services/ai-ticket-api-service" || true
 
             terraform plan -input=false
             terraform apply -auto-approve -input=false
