@@ -335,7 +335,6 @@ jobs:
             trello_board_id = "$TEST_TRELLO_BOARD_ID"
             trello_api_key = "$TRELLO_API_KEY"
             openai_api_key = "$TEST_OPENAI_API_KEY"
-            bot_user_id = "$BOT_USER_ID"
             environment = "production"
             EOF
       - run:
