@@ -284,22 +284,22 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
 
       env {
-        name = "USE_GCP_EXPORTER"
+        name  = "USE_GCP_EXPORTER"
         value = "true"
       }
 
       env {
-        name = "GCP_PROJECT_ID"
+        name  = "GCP_PROJECT_ID"
         value = var.project_id
       }
 
       env {
-        name = "TRELLO_API_SECRET"
+        name  = "TRELLO_API_SECRET"
         value = "skibidi"
       }
 
       env {
-        name = "REDIRECT_URI"
+        name  = "REDIRECT_URI"
         value = "skibidi"
       }
 
