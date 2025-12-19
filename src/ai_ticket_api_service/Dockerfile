@@ -21,7 +21,7 @@ COPY src/trello_client_impl ./src/trello_client_impl
 COPY src/kanban_client_api ./src/kanban_client_api
 
 # Install dependencies
-RUN uv sync --all-packages --no-dev
+RUN uv sync --all-packages --no-dev --extra telemetry
 RUN uv pip install uvicorn[standard]
 
 # Final runtime stage
