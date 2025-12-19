@@ -3,9 +3,6 @@
 version: 2.1
 
 # gcp stuff
-orbs:
-  gcp-cli: circleci/gcp-cli@2.4.1
-
 commands:
   gcp-oidc-generate-cred-config-file:
     description: "Authenticate with GCP using a CircleCI OIDC token."
@@ -31,6 +28,7 @@ commands:
     steps:
       - run:
           command: |
+            source $BASH_ENV
             # Store OIDC token in temp file
             echo $CIRCLE_OIDC_TOKEN > << parameters.oidc_token_file_path >>
             # Create a credential configuration for the generated OIDC ID Token
@@ -49,6 +47,7 @@ commands:
     steps:
       - run:
           command: |
+            source $BASH_ENV
             # Configure gcloud to leverage the generated credential configuration
             gcloud auth login --brief --cred-file "<< parameters.gcp_cred_config_file_path >>"
             # Configure ADC
