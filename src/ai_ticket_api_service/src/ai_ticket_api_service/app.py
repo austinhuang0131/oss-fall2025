@@ -8,6 +8,7 @@ import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from ai_chat_ticket_integration import AiChatTicketIntegration
 from discord_client_impl.discord_impl import DiscordClient
@@ -23,14 +24,18 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-try:
-    from opentelemetry.exporter.gcp_trace import CloudTraceExporter
-    HAS_GCP_EXPORTER = True
-except ImportError:
-    HAS_GCP_EXPORTER = False
 from pydantic import BaseModel
 from trello_ticket_impl.trello_ticket_impl import TrelloTicketClientImpl
+
+has_gcp_exporter = False
+if TYPE_CHECKING:
+    from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+else:
+    try:
+        from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+        has_gcp_exporter = True
+    except ImportError:
+        CloudTraceSpanExporter = None  # type: ignore[assignment]
 
 # Load environment variables
 _ = load_dotenv()
@@ -68,19 +73,18 @@ def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
     use_gcp = os.getenv("USE_GCP_EXPORTER", "false").lower() == "true"
     gcp_project_id = os.getenv("GCP_PROJECT_ID")
 
+    trace_exporter_obj: CloudTraceSpanExporter | OTLPSpanExporter | None = None
+
     # Set up tracing
-    if use_gcp and gcp_project_id and HAS_GCP_EXPORTER:
+    if use_gcp and gcp_project_id and has_gcp_exporter:
         logger.info("Using Google Cloud Trace exporter with project ID: %s", gcp_project_id)
-        trace_exporter_obj: trace.TracerProvider | OTLPSpanExporter = CloudTraceExporter(project_id=gcp_project_id)  # type: ignore[assignment]
+        trace_exporter_obj = CloudTraceSpanExporter(project_id=gcp_project_id)  # type: ignore[no-untyped-call]
     else:
         endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
         logger.info("Using OTLP exporter with endpoint: %s", endpoint)
-        trace_exporter_obj = OTLPSpanExporter(
-            endpoint=endpoint,
-            insecure=True,
-        )
+        trace_exporter_obj = OTLPSpanExporter(endpoint=endpoint, insecure=True)
     trace_provider = TracerProvider(resource=resource)
-    trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter_obj))  # type: ignore[arg-type]
+    trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter_obj))
     trace.set_tracer_provider(trace_provider)
 
     # Set up metrics
@@ -183,7 +187,7 @@ def create_integration() -> AiChatTicketIntegration:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Lifespan context manager for startup and shutdown."""
     global integration_instance, integration_task
 
@@ -208,7 +212,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     if integration_instance:
         integration_instance.stop()
     if integration_task:
-        integration_task.cancel()
+        _ = integration_task.cancel()
         try:
             await integration_task
         except asyncio.CancelledError:
@@ -242,7 +246,7 @@ async def root() -> dict[str, str]:
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
     status = "healthy"
-    if integration_instance is None or not integration_instance._running:
+    if integration_instance is None or not getattr(integration_instance, "_running", False):
         status = "unhealthy"
 
     return HealthResponse(
