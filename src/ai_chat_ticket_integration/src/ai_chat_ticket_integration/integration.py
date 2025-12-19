@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from tickets_api.src.tickets_api import TicketStatus
 
@@ -107,15 +107,15 @@ class AiChatTicketIntegration:
             poll_interval: Polling interval in seconds (default: 1.0)
 
         """
-        self.chat_api = chat_api
-        self.ticket_api = ticket_api
-        self.ai_api = ai_api
-        self.channel_id = channel_id
-        self.bot_user_id = bot_user_id
-        self.poll_interval = poll_interval
-        self._running = False
+        self.chat_api: ChatInterface = chat_api
+        self.ticket_api: TicketInterface = ticket_api
+        self.ai_api: AIInterface = ai_api
+        self.channel_id: str = channel_id
+        self.bot_user_id: str | None = bot_user_id
+        self.poll_interval: float = poll_interval
+        self._running: bool = False
         # assume message IDs are ordered and thus comparable
-        self._last_process_message_id = ""
+        self._last_process_message_id: str = ""
 
         # Initialize OpenTelemetry metrics if available
         self._request_counter: Counter | None = None
@@ -336,7 +336,6 @@ class AiChatTicketIntegration:
         """
         ticket_id = parameters.get("ticket_id", "").strip()
         title = parameters.get("title")
-        status_raw = parameters.get("status")
 
         if not ticket_id:
             _ = self.chat_api.send_message(
@@ -345,21 +344,16 @@ class AiChatTicketIntegration:
             return
 
         # Parse status if provided
-        status: TicketStatus | None = None
-        if status_raw:
-            status_lower = str(status_raw).lower()
-            if status_lower == "open":
-                status = TicketStatus.OPEN
-            elif status_lower in ("in progress", "in_progress"):
-                status = TicketStatus.IN_PROGRESS
-            elif status_lower == "closed":
-                status = TicketStatus.CLOSED
-            else:
-                _ = self.chat_api.send_message(
-                    self.channel_id,
-                    f"Invalid status '{status_raw}'. Valid statuses are: open, in progress, closed.",
-                )
-                return
+        status = self._parse_ticket_status(parameters.get("status"))
+
+        # Validate status if provided
+        if parameters.get("status") and status is None:
+            _ = self.chat_api.send_message(
+                self.channel_id,
+                f"Invalid status '{parameters.get('status')}'. "
+                "Valid statuses are: open, in progress, closed.",
+            )
+            return
 
         # Convert title to string if provided
         title_str: str | None = str(title).strip() if title else None
