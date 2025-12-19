@@ -23,6 +23,12 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+try:
+    from opentelemetry.exporter.gcp_trace import CloudTraceExporter
+    HAS_GCP_EXPORTER = True
+except ImportError:
+    HAS_GCP_EXPORTER = False
 from pydantic import BaseModel
 from trello_ticket_impl.trello_ticket_impl import TrelloTicketClientImpl
 
@@ -46,17 +52,6 @@ class HealthResponse(BaseModel):
     timestamp: float
 
 
-class MetricsResponse(BaseModel):
-    """Metrics response."""
-
-    total_requests: int
-    successful_requests: int
-    failed_requests: int
-    success_rate: float
-    failure_rate: float
-    avg_latency_ms: float
-
-
 # Initialize OpenTelemetry
 def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
     """Set up OpenTelemetry tracing and metrics."""
@@ -69,22 +64,43 @@ def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
         },
     )
 
+    # Determine which exporter to use
+    use_gcp = os.getenv("USE_GCP_EXPORTER", "false").lower() == "true"
+    gcp_project_id = os.getenv("GCP_PROJECT_ID")
+
     # Set up tracing
-    trace_exporter = OTLPSpanExporter(
-        endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"),
-        insecure=True,
-    )
+    if use_gcp and gcp_project_id and HAS_GCP_EXPORTER:
+        logger.info("Using Google Cloud Trace exporter with project ID: %s", gcp_project_id)
+        trace_exporter_obj: trace.TracerProvider | OTLPSpanExporter = CloudTraceExporter(project_id=gcp_project_id)  # type: ignore[assignment]
+    else:
+        endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+        logger.info("Using OTLP exporter with endpoint: %s", endpoint)
+        trace_exporter_obj = OTLPSpanExporter(
+            endpoint=endpoint,
+            insecure=True,
+        )
     trace_provider = TracerProvider(resource=resource)
-    trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter))
+    trace_provider.add_span_processor(BatchSpanProcessor(trace_exporter_obj))  # type: ignore[arg-type]
     trace.set_tracer_provider(trace_provider)
 
     # Set up metrics
-    metric_reader = PeriodicExportingMetricReader(
-        OTLPMetricExporter(
-            endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"),
-            insecure=True,
-        ),
-    )
+    if use_gcp and gcp_project_id:
+        logger.info("Using OTLP metrics exporter for Google Cloud (via gRPC)")
+        # Google Cloud Monitoring uses OTLP gRPC endpoint
+        metric_reader = PeriodicExportingMetricReader(
+            OTLPMetricExporter(
+                endpoint="opentelemetry-metric.googleapis.com:443",
+                insecure=False,
+            ),
+        )
+    else:
+        metric_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+        metric_reader = PeriodicExportingMetricReader(
+            OTLPMetricExporter(
+                endpoint=metric_endpoint,
+                insecure=True,
+            ),
+        )
     meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
     metrics.set_meter_provider(meter_provider)
 
@@ -98,39 +114,6 @@ def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
 tracer, meter = setup_telemetry()
 
 
-# In-memory metrics storage (for /metrics endpoint)
-class MetricsStorage:
-    """Simple in-memory storage for aggregated metrics from integration."""
-
-    def __init__(self) -> None:
-        self.total_requests = 0
-        self.successful_requests = 0
-        self.failed_requests = 0
-        self.total_latency_ms = 0.0
-
-    @property
-    def success_rate(self) -> float:
-        """Calculate success rate."""
-        if self.total_requests == 0:
-            return 0.0
-        return (self.successful_requests / self.total_requests) * 100
-
-    @property
-    def failure_rate(self) -> float:
-        """Calculate failure rate."""
-        if self.total_requests == 0:
-            return 0.0
-        return (self.failed_requests / self.total_requests) * 100
-
-    @property
-    def avg_latency_ms(self) -> float:
-        """Calculate average latency."""
-        if self.total_requests == 0:
-            return 0.0
-        return self.total_latency_ms / self.total_requests
-
-
-metrics_storage = MetricsStorage()
 
 # Global integration instance
 integration_instance: AiChatTicketIntegration | None = None
@@ -250,9 +233,8 @@ async def root() -> dict[str, str]:
     return {
         "message": "AI Ticket API Service",
         "version": "0.1.0",
-        "description": "Running AI chat ticket integration",
+        "description": "Running AI chat ticket integration with OpenTelemetry monitoring",
         "health": "/health",
-        "metrics": "/metrics",
     }
 
 
@@ -267,23 +249,6 @@ async def health_check() -> HealthResponse:
         status=status,
         version="0.1.0",
         timestamp=time.time(),
-    )
-
-
-@app.get("/metrics", response_model=MetricsResponse)
-async def get_metrics() -> MetricsResponse:
-    """Get current metrics.
-
-    Note: These are read from OpenTelemetry metrics exported by the integration.
-    The integration class emits metrics for message processing.
-    """
-    return MetricsResponse(
-        total_requests=metrics_storage.total_requests,
-        successful_requests=metrics_storage.successful_requests,
-        failed_requests=metrics_storage.failed_requests,
-        success_rate=metrics_storage.success_rate,
-        failure_rate=metrics_storage.failure_rate,
-        avg_latency_ms=metrics_storage.avg_latency_ms,
     )
 
 

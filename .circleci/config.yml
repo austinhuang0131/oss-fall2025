@@ -254,7 +254,7 @@ jobs:
                echo "Coverage XML not found."
             fi
 
-  # Job 7: Terraform Deploy (for deployment walkthrough)
+# Job 7: Terraform Deploy (for deployment walkthrough)
   terraform_deploy:
     docker:
       - image: hashicorp/terraform:1.6
@@ -325,39 +325,60 @@ jobs:
             cat > terraform.tfvars \<< EOF
             project_id = "$GCP_PROJECT_ID"
             region = "$GCP_REGION"
+            service_name = "$GCP_SERVICE_NAME"
+            poll_interval = "1.0"
             image = "$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/ai-ticket-api/ai-ticket-api-service:${CIRCLE_SHA1}"
             discord_token = "$DISCORD_ACCESS_TOKEN"
             discord_channel_id = "$TEST_DISCORD_CHANNEL_ID"
             bot_user_id = "$DISCORD_BOT_USER_ID"
             trello_token = "$TRELLO_TOKEN"
             trello_board_id = "$TEST_TRELLO_BOARD_ID"
+            trello_api_key = "$TRELLO_API_KEY"
             openai_api_key = "$TEST_OPENAI_API_KEY"
+            bot_user_id = "$BOT_USER_ID"
             environment = "production"
             EOF
       - run:
-          name: "Terraform Init / Import existing / Plan / Apply"
+          name: "Terraform Init"
           command: |
             set -euo pipefail
             source $BASH_ENV
             cd terraform
-            terraform init -input=false
-
-            # If a previous run created resources but state was lost, imports fix 409 AlreadyExists errors.
-            terraform import -input=false google_artifact_registry_repository.docker_repo \
-              "projects/${GCP_PROJECT_ID}/locations/${GCP_REGION}/repositories/ai-ticket-api" || true
-            terraform import -input=false google_secret_manager_secret.discord_token \
-              "projects/${GCP_PROJECT_ID}/secrets/discord-token" || true
-            terraform import -input=false google_secret_manager_secret.trello_token \
-              "projects/${GCP_PROJECT_ID}/secrets/trello-token" || true
-            terraform import -input=false google_secret_manager_secret.openai_api_key \
-              "projects/${GCP_PROJECT_ID}/secrets/openai-api-key" || true
-            terraform import -input=false google_service_account.cloud_run_sa \
-              "projects/${GCP_PROJECT_ID}/serviceAccounts/ai-ticket-api-service@${GCP_PROJECT_ID}.iam.gserviceaccount.com" || true
-            terraform import -input=false google_cloud_run_v2_service.ai_ticket_api \
-              "projects/${GCP_PROJECT_ID}/locations/${GCP_REGION}/services/ai-ticket-api-service" || true
-
-            terraform plan -input=false
-            terraform apply -auto-approve -input=false
+            terraform init
+      - run:
+          name: "Import Existing Resources"
+          command: |
+            cd terraform
+            source $BASH_ENV
+            
+            # Import existing resources if they exist in GCP
+            # These commands will succeed silently if resources don't exist yet
+            terraform import -allow-missing-config google_artifact_registry_repository.docker_repo \
+              "projects/$GCP_PROJECT_ID/locations/$GCP_REGION/repositories/ai-ticket-api" || true
+            
+            terraform import -allow-missing-config google_secret_manager_secret.discord_token \
+              "projects/$GCP_PROJECT_ID/secrets/discord-token" || true
+            
+            terraform import -allow-missing-config google_secret_manager_secret.trello_token \
+              "projects/$GCP_PROJECT_ID/secrets/trello-token" || true
+            
+            terraform import -allow-missing-config google_secret_manager_secret.trello_api_key \
+              "projects/$GCP_PROJECT_ID/secrets/trello-api-key" || true
+            
+            terraform import -allow-missing-config google_secret_manager_secret.openai_api_key \
+              "projects/$GCP_PROJECT_ID/secrets/openai-api-key" || true
+            
+            terraform import -allow-missing-config google_service_account.cloud_run_sa \
+              "projects/$GCP_PROJECT_ID/serviceAccounts/ai-ticket-api-service@$GCP_PROJECT_ID.iam.gserviceaccount.com" || true
+            
+            terraform import -allow-missing-config google_cloud_run_v2_service.ai_ticket_api \
+              "projects/$GCP_PROJECT_ID/locations/$GCP_REGION/services/ai-ticket-api-service" || true
+      - run:
+          name: "Terraform Plan and Apply"
+          command: |
+            cd terraform
+            terraform plan
+            terraform apply -auto-approve
       - run:
           name: "Output Service URL"
           command: |

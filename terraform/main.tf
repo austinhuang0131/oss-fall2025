@@ -62,6 +62,12 @@ variable "trello_token" {
   sensitive   = true
 }
 
+variable "trello_api_key" {
+  description = "Trello API key"
+  type        = string
+  sensitive   = true
+}
+
 variable "trello_board_id" {
   description = "Trello board ID"
   type        = string
@@ -106,6 +112,10 @@ resource "google_artifact_registry_repository" "docker_repo" {
   format        = "DOCKER"
 
   depends_on = [google_project_service.artifact_registry]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Secret Manager secrets for sensitive data
@@ -114,6 +124,10 @@ resource "google_secret_manager_secret" "discord_token" {
 
   replication {
     auto {}
+  }
+
+  lifecycle {
+    ignore_changes = all
   }
 }
 
@@ -128,6 +142,10 @@ resource "google_secret_manager_secret" "trello_token" {
   replication {
     auto {}
   }
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_secret_manager_secret_version" "trello_token" {
@@ -135,11 +153,32 @@ resource "google_secret_manager_secret_version" "trello_token" {
   secret_data = var.trello_token
 }
 
+resource "google_secret_manager_secret" "trello_api_key" {
+  secret_id = "trello-api-key"
+
+  replication {
+    auto {}
+  }
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "google_secret_manager_secret_version" "trello_api_key" {
+  secret      = google_secret_manager_secret.trello_api_key.id
+  secret_data = var.trello_api_key
+}
+
 resource "google_secret_manager_secret" "openai_api_key" {
   secret_id = "openai-api-key"
 
   replication {
     auto {}
+  }
+
+  lifecycle {
+    ignore_changes = all
   }
 }
 
@@ -153,6 +192,10 @@ resource "google_service_account" "cloud_run_sa" {
   account_id   = "ai-ticket-api-service"
   display_name = "AI Ticket API Service Account"
   description  = "Service account for AI Ticket API Cloud Run service"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Grant Secret Manager access to service account
@@ -164,6 +207,12 @@ resource "google_secret_manager_secret_iam_member" "discord_token_access" {
 
 resource "google_secret_manager_secret_iam_member" "trello_token_access" {
   secret_id = google_secret_manager_secret.trello_token.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "trello_api_key_access" {
+  secret_id = google_secret_manager_secret.trello_api_key.id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
@@ -225,6 +274,36 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
 
       env {
+        name = "TRELLO_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.trello_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name  = "USE_GCP_EXPORTER"
+        value = "true"
+      }
+
+      env {
+        name  = "GCP_PROJECT_ID"
+        value = var.project_id
+      }
+
+      env {
+        name  = "TRELLO_API_SECRET"
+        value = "skibidi"
+      }
+
+      env {
+        name  = "REDIRECT_URI"
+        value = "skibidi"
+      }
+
+      env {
         name  = "TEST_TRELLO_BOARD_ID"
         value = var.trello_board_id
       }
@@ -263,14 +342,14 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           path = "/health"
         }
         timeout_seconds   = 30
-        period_seconds    = 15
+        period_seconds    = 30
         failure_threshold = 20
       }
     }
 
     scaling {
       min_instance_count = 1
-      max_instance_count = 5
+      max_instance_count = 1
     }
   }
 
@@ -278,6 +357,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
     google_project_service.cloud_run,
     google_secret_manager_secret_version.discord_token,
     google_secret_manager_secret_version.trello_token,
+    google_secret_manager_secret_version.trello_api_key,
     google_secret_manager_secret_version.openai_api_key,
   ]
 }

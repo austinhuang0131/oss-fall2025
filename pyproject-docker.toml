@@ -1,0 +1,16 @@
+[project]
+name = "ta-assignment"
+version = "0.1.0"
+description = "Template repository for a mail client"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+  "src/trello_ticket_impl",
+  "src/trello_client_impl",
+  "src/kanban_client_api",
+  "src/ai_chat_ticket_integration",
+  "src/ai_ticket_api_service",
+]
