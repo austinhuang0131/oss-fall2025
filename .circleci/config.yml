@@ -24,10 +24,10 @@ commands:
         default: GCP_SERVICE_ACCOUNT_EMAIL
       gcp_cred_config_file_path:
         type: string
-        default: /home/circleci/gcp_cred_config.json
+        default: ${CIRCLE_WORKING_DIRECTORY}/gcp_cred_config.json
       oidc_token_file_path:
         type: string
-        default: /home/circleci/oidc_token.json
+        default: ${CIRCLE_WORKING_DIRECTORY}/oidc_token.json
     steps:
       - run:
           command: |
@@ -45,7 +45,7 @@ commands:
     parameters:
       gcp_cred_config_file_path:
         type: string
-        default: /home/circleci/gcp_cred_config.json
+        default: ${CIRCLE_WORKING_DIRECTORY}/gcp_cred_config.json
     steps:
       - run:
           command: |
