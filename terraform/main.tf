@@ -318,11 +318,6 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
         value = var.poll_interval
       }
 
-      env {
-        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://localhost:4317"
-      }
-
       resources {
         limits = {
           cpu    = "1"

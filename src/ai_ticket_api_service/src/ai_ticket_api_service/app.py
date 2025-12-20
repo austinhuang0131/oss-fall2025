@@ -64,7 +64,8 @@ def setup_telemetry() -> tuple[trace.Tracer, metrics.Meter]:
     )
 
     # Set up OpenTelemetry Python SDK with OTLP exporters
-    # Cloud Run automatically routes OTLP to Google Cloud Operations
+    # Cloud Run automatically sets OTEL_EXPORTER_OTLP_ENDPOINT to route to Google Cloud Operations
+    # For local development, set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 if needed
     tracer_provider = TracerProvider(resource=resource)
     tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
     trace.set_tracer_provider(tracer_provider)

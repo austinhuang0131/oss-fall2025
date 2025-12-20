@@ -35,7 +35,7 @@ Set the following environment variables (or use a `.env` file):
 **Service Configuration:**
 - `PORT`: Server port (default: `8080`)
 - `ENVIRONMENT`: Deployment environment (default: `development`)
-- `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry collector endpoint (default: `http://localhost:4317`)
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry collector endpoint (default unset)
 
 **Integration Configuration:**
 - `DISCORD_ACCESS_TOKEN`: Discord bot token (required)
