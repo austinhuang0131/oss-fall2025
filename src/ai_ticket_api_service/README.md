@@ -35,12 +35,14 @@ Set the following environment variables (or use a `.env` file):
 **Service Configuration:**
 - `PORT`: Server port (default: `8080`)
 - `ENVIRONMENT`: Deployment environment (default: `development`)
-- `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry collector endpoint (default unset)
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry collector endpoint (default `http://localhost:4137`)
 
 **Integration Configuration:**
 - `DISCORD_ACCESS_TOKEN`: Discord bot token (required)
 - `TEST_DISCORD_CHANNEL_ID`: Discord channel ID to monitor (required)
-- `TRELLO_TOKEN`: Trello OAuth token (required)
+- `BOT_USER_ID`: Discord bot user ID (strongly recommended)
+- `TRELLO_TOKEN`: Trello OAuth token (required). See `TrelloTicketImpl` documentation.
+- `TEST_TRELLO_API_KEY`: Trello OAuth API key (required)
 - `TEST_TRELLO_BOARD_ID`: Trello board ID (optional, creates if not provided)
 - `TEST_OPENAI_API_KEY`: OpenAI API key (required)
 - `POLL_INTERVAL`: Message polling interval in seconds (default: `1.0`)

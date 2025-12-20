@@ -63,6 +63,7 @@ Tokens can be provided in three ways:
 ```python
 client = TrelloTicketClientImpl(token="your_api_token", board_id="board_id")
 ```
+Token for your own account can be obtained [here](https://trello.com/power-ups/admin) (navigate to your app, then "API keys").
 
 2. **OAuth Handler** (recommended for production):
 ```python
