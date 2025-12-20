@@ -187,6 +187,123 @@ resource "google_secret_manager_secret_version" "openai_api_key" {
   secret_data = var.openai_api_key
 }
 
+# OpenTelemetry Collector configuration
+resource "google_secret_manager_secret" "otel_collector_config" {
+  secret_id = "otel-collector-config"
+
+  replication {
+    auto {}
+  }
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# https://docs.cloud.google.com/stackdriver/docs/instrumentation/opentelemetry-collector-cloud-run#gotc-provided-config
+
+resource "google_secret_manager_secret_version" "otel_collector_config" {
+  secret = google_secret_manager_secret.otel_collector_config.id
+  secret_data = <<-EOT
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: localhost:4317
+      http:
+        cors:
+          allowed_origins:
+          - http://*
+          - https://*
+        endpoint: localhost:4318
+
+processors:
+  batch:
+    send_batch_max_size: 200
+    send_batch_size: 200
+    timeout: 5s
+
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 65
+    spike_limit_percentage: 20
+
+  resourcedetection:
+    detectors: [gcp]
+    timeout: 10s
+
+  transform/collision:
+    metric_statements:
+    - context: datapoint
+      statements:
+      - set(attributes["exported_location"], attributes["location"])
+      - delete_key(attributes, "location")
+      - set(attributes["exported_cluster"], attributes["cluster"])
+      - delete_key(attributes, "cluster")
+      - set(attributes["exported_namespace"], attributes["namespace"])
+      - delete_key(attributes, "namespace")
+      - set(attributes["exported_job"], attributes["job"])
+      - delete_key(attributes, "job")
+      - set(attributes["exported_instance"], attributes["instance"])
+      - delete_key(attributes, "instance")
+      - set(attributes["exported_project_id"], attributes["project_id"])
+      - delete_key(attributes, "project_id")
+
+exporters:
+  googlecloud:
+    log:
+      default_log_name: opentelemetry-collector
+
+  googlemanagedprometheus:
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions:
+  - health_check
+  pipelines:
+    logs:
+      receivers:
+      - otlp
+      processors:
+      - resourcedetection
+      - memory_limiter
+      - batch
+      exporters:
+      - googlecloud
+    metrics/otlp:
+      receivers:
+      - otlp
+      processors:
+      - resourcedetection
+      - transform/collision
+      - memory_limiter
+      - batch
+      exporters:
+      - googlemanagedprometheus
+    traces:
+      receivers:
+      - otlp
+      processors:
+      - resourcedetection
+      - memory_limiter
+      - batch
+      exporters:
+      - googlecloud
+  telemetry:
+    metrics:
+      readers:
+        - periodic:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: localhost:4317
+                insecure: true
+EOT
+}
+
 # Service account for Cloud Run
 resource "google_service_account" "cloud_run_sa" {
   account_id   = "ai-ticket-api-service"
@@ -223,6 +340,25 @@ resource "google_secret_manager_secret_iam_member" "openai_api_key_access" {
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "otel_collector_config_access" {
+  secret_id = google_secret_manager_secret.otel_collector_config.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+# Grant Cloud Trace and Monitoring permissions to service account
+resource "google_project_iam_member" "cloud_trace_agent" {
+  project = var.project_id
+  role    = "roles/cloudtrace.agent"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_project_iam_member" "monitoring_metric_writer" {
+  project = var.project_id
+  role    = "roles/monitoring.metricWriter"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
 # Cloud Run service
 resource "google_cloud_run_v2_service" "ai_ticket_api" {
   name     = var.service_name
@@ -233,6 +369,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
 
     containers {
       image = var.image
+      name  = "ai-ticket-api"
 
       ports {
         container_port = 8080
@@ -241,6 +378,11 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       env {
         name  = "ENVIRONMENT"
         value = var.environment
+      }
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://localhost:4317"
       }
 
       env {
@@ -337,6 +479,58 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       }
     }
 
+    # OpenTelemetry Collector sidecar for Google Cloud Operations
+    containers {
+      name  = "otel-collector"
+      image = "us-docker.pkg.dev/cloud-ops-agents-artifacts/google-cloud-opentelemetry-collector/otelcol-google:0.141.0"
+
+      startup_probe {
+        http_get {
+          path = "/"
+          port = 13133
+        }
+        timeout_seconds   = 30
+        period_seconds    = 30
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/"
+          port = 13133
+        }
+        timeout_seconds   = 30
+        period_seconds    = 30
+      }
+
+      args = ["--config=/etc/otel-collector-config.yaml"]
+
+      # Mount configuration from volume
+      volume_mounts {
+        name       = "otel-collector-config"
+        mount_path = "/etc/otel-collector-config.yaml"
+        read_only  = true
+      }
+
+      resources {
+        limits = {
+          cpu    = "0.5"
+          memory = "256Mi"
+        }
+      }
+    }
+
+    # Volume for OpenTelemetry Collector configuration
+    volumes {
+      name = "otel-collector-config"
+      secret {
+        secret  = google_secret_manager_secret.otel_collector_config.secret_id
+        items {
+          version = "latest"
+          path    = "otel-collector-config.yaml"
+        }
+      }
+    }
+
     scaling {
       min_instance_count = 1
       max_instance_count = 1
@@ -349,6 +543,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
     google_secret_manager_secret_version.trello_token,
     google_secret_manager_secret_version.trello_api_key,
     google_secret_manager_secret_version.openai_api_key,
+    google_secret_manager_secret_version.otel_collector_config,
   ]
 }
 

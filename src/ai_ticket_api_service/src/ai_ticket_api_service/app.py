@@ -165,7 +165,6 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     # Startup
     logger.info("Starting AI Ticket API Service")
-    logger.info("OpenTelemetry endpoint: %s", os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"))
 
     try:
         # Create and start integration
