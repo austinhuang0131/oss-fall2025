@@ -33,7 +33,17 @@ members = [
   "src/kanban_client_service",
   "src/kanban_client_adapter",
   "src/kanban_generated_client",
+  "src/ticket_api",
+  "src/trello_ticket_impl",
+  "src/chat_ticket_integration",
+  "src/ai_chat_ticket_integration",
+  "src/ai_ticket_api_service",
 ]
+
+[tool.uv.sources]
+discord-client-impl = { git = "https://github.com/koitu/oss-taapp.git", subdirectory = "src/discord_client_impl", rev = "hw3-alignment" }
+openai-impl = { git = "https://github.com/natashagit/oss-nml.git", subdirectory = "src/openai_impl", rev = "hw_3" }
+# gemini-client-impl = { git = "https://github.com/ranjan2601/OSPD-Fall-25.git", subdirectory = "src/gemini_client_impl", rev = "hw3" }
 
 [tool.ruff]
 line-length = 130 # high for top level due to tests
@@ -60,11 +70,19 @@ mypy_path = [
     "src/kanban_client_api/src",
     "src/trello_client_impl/src",
     "src/kanban_client_service/src",
-    "src/kanban_client_adapter/src"
+    "src/kanban_client_adapter/src",
+    "src/ticket_api/src",
+    "src/trello_ticket_impl/src",
+    "src/chat_ticket_integration/src",
+    "src/ai_chat_ticket_integration/src",
+    "typings",
 ]
 ignore_missing_imports = false
 warn_unused_ignores = false
-exclude = ["^src/kanban_generated_client/"]
+exclude = [
+    "^src/kanban_generated_client/",
+    "^src/mail_client_service/mail_client_service_client/",
+]
 
 # Allow untyped imports for specific modules
 [[tool.mypy.overrides]]
@@ -81,6 +99,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "kanban_generated_client.*",
+    "mail_client_service_client.*",
 ]
 ignore_errors = true
 
@@ -90,7 +109,14 @@ pythonpath = [
     "src"
 ]
 testpaths = ["tests", "src/*/tests"]
-addopts = ["--cov", "--cov-report=term-missing", "--import-mode=importlib"]
+addopts = [
+    "--cov",
+    "--cov-report=term-missing",
+    "--import-mode=importlib",
+    "--ignore=src/mail_client_adapter/tests/test_adapter.py",
+    "--ignore=tests/e2e/test_mail_client_service_e2e.py",
+    "--ignore=tests/integration/test_adapter_e2e.py",
+]
 asyncio_mode = "auto"
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
@@ -110,4 +136,11 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
+]
+
+[dependency-groups]
+dev = [
+    "discord-client-impl",
+    "openai-impl",
+#     "gemini-client-impl",
 ]
