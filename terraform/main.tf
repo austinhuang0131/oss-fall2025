@@ -508,7 +508,6 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
       volume_mounts {
         name       = "otel-collector-config"
         mount_path = "/etc/otel-collector-config.yaml"
-        read_only  = true
       }
 
       resources {
