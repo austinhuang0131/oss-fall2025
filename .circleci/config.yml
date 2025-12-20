@@ -405,6 +405,9 @@ jobs:
             
             terraform import google_cloud_run_v2_service.ai_ticket_api \
               "projects/$GCP_PROJECT_ID/locations/$GCP_REGION/services/ai-ticket-api-service" || true
+
+            terraform import google_secret_manager_secret.otel_collector_config \
+              "projects/$GCP_PROJECT_ID/secrets/otel-collector-config" || true
       - run:
           name: "Terraform Plan and Apply"
           command: |
