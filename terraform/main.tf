@@ -203,7 +203,7 @@ resource "google_secret_manager_secret" "otel_collector_config" {
 # https://docs.cloud.google.com/stackdriver/docs/instrumentation/opentelemetry-collector-cloud-run#gotc-provided-config
 
 resource "google_secret_manager_secret_version" "otel_collector_config" {
-  secret = google_secret_manager_secret.otel_collector_config.id
+  secret      = google_secret_manager_secret.otel_collector_config.id
   secret_data = <<-EOT
 receivers:
   otlp:
@@ -489,8 +489,8 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           path = "/"
           port = 13133
         }
-        timeout_seconds   = 30
-        period_seconds    = 30
+        timeout_seconds = 30
+        period_seconds  = 30
       }
 
       liveness_probe {
@@ -498,8 +498,8 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
           path = "/"
           port = 13133
         }
-        timeout_seconds   = 30
-        period_seconds    = 30
+        timeout_seconds = 30
+        period_seconds  = 30
       }
 
       args = ["--config=/etc/otel-collector-config.yaml"]
@@ -523,7 +523,7 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
     volumes {
       name = "otel-collector-config"
       secret {
-        secret  = google_secret_manager_secret.otel_collector_config.secret_id
+        secret = google_secret_manager_secret.otel_collector_config.secret_id
         items {
           version = "latest"
           path    = "otel-collector-config.yaml"
