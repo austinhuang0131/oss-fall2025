@@ -502,12 +502,12 @@ resource "google_cloud_run_v2_service" "ai_ticket_api" {
         period_seconds  = 30
       }
 
-      args = ["--config=/etc/otel-collector-config.yaml"]
+      args = ["--config=/etc/otelcol-google/otel-collector-config.yaml"]
 
       # Mount configuration from volume
       volume_mounts {
         name       = "otel-collector-config"
-        mount_path = "/etc/otel-collector-config.yaml"
+        mount_path = "/etc/otelcol-google/"
       }
 
       resources {
